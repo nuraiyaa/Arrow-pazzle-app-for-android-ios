@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_stack" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: 'class', theme: { extend: { colors: { surface: '#090b10', 'surface-card': '#11141d', primary: '#00f2fe', 'primary-glow': '#4facfe', 'on-surface': '#f1f5f9', 'on-surface-variant': '#64748b' }, fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] } } } };</script><style>@layer base { html, body { width: 100vw; margin: 0; padding: 0; background-color: #090b10; color: #f1f5f9; font-family: 'Plus Jakarta Sans', sans-serif; } body { overscroll-behavior: none; } .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); } .pt-safe { padding-top: env(safe-area-inset-top, 0px); } } ::-webkit-scrollbar { display: none; } .bg-grid-pattern { background-size: 32px 32px; background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px); }</style><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-sans antialiased min-h-screen relative selection:bg-primary/20"><div class="fixed inset-0 pointer-events-none bg-grid-pattern opacity-60 z-0"></div><div class="fixed top-[-10vw] left-1/2 -translate-x-1/2 w-[80vw] h-[350px] bg-primary/10 blur-[130px] rounded-full pointer-events-none z-0"></div><header class="fixed top-0 w-full z-50 pt-safe bg-surface/75 backdrop-blur-xl shadow-[0_4px_24px_rgba(0,0,0,0.4)]"><div class="h-16 px-4 flex items-center justify-between"><button aria-label="Go back" class="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-surface-card/70 text-on-surface hover:text-primary active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.3)]" onclick="history.back()"><span class="material-symbols-outlined text-[20px]">arrow_back_ios_new</span></button><h1 class="text-sm font-bold tracking-wider uppercase text-on-surface/90">Game Modes &amp; Difficulty Selection</h1><div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-card/80 shadow-[0_0_12px_rgba(245,158,11,0.2)]"><span class="material-symbols-outlined text-[18px] text-amber-400 font-bold">monetization_on</span><span class="text-xs font-extrabold text-amber-300 tracking-tight">1,450</span></div></div></header><main class="flex flex-col relative w-full pt-16 pb-safe bg-transparent z-10"><div class="flex flex-col w-full px-4 pb-8 space-y-4 font-headline">
+<!-- Sub-Header Status Tracker / Mode Switch Summary -->
+<div class="flex items-center justify-between py-1">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+<span class="text-xs font-semibold tracking-wider text-slate-300 uppercase">Season 4 • Vector Flow</span>
+</div>
+<div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-medium">
+<span class="material-symbols-outlined text-[15px]" style="font-variation-settings: 'FILL' 1;">bolt</span>
+<span>Daily Streak: 12d</span>
+</div>
+</div>
+<!-- Primary Active Featured Card: Relaxed Mode -->
+<div class="relative w-full rounded-3xl bg-slate-900/85 p-5 shadow-2xl shadow-indigo-950/50 backdrop-blur-xl overflow-hidden transition-all duration-300">
+<!-- Atmospheric Ambient Glows -->
+<div class="absolute -top-12 -right-12 w-44 h-44 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute -bottom-10 -left-10 w-40 h-40 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative z-10 flex flex-col space-y-4">
+<!-- Card Header -->
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-indigo-800/40 flex items-center justify-center text-indigo-300 shadow-inner">
+<span class="material-symbols-outlined text-2xl font-bold">explore</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h2 class="text-lg font-bold text-white tracking-tight">Relaxed Mode</h2>
+</div>
+<p class="text-xs text-slate-400 font-body">Zen puzzle solving with 3-heart safety</p>
+</div>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest bg-indigo-500/20 text-indigo-300 shadow-sm shadow-indigo-500/20">
+<span class="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping"></span>
+          Active Mode
+        </span>
+</div>
+<!-- Difficulty Selector Pills -->
+<div class="flex flex-col space-y-1.5 pt-1">
+<div class="flex items-center justify-between text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+<span>Difficulty</span>
+<span class="text-indigo-400 font-mono">Tier II Active</span>
+</div>
+<div class="grid grid-cols-3 gap-2 bg-slate-950/60 p-1.5 rounded-2xl">
+<!-- Easy -->
+<button class="group flex items-center justify-center gap-1 py-2 px-3 rounded-xl bg-slate-900/60 text-slate-400 text-xs font-semibold hover:text-white transition-all active:scale-95" type="button">
+<span class="material-symbols-outlined text-[15px] text-emerald-400">check_circle</span>
+<span>Easy</span>
+</button>
+<!-- Hard (Selected) -->
+<button class="flex items-center justify-center gap-1 py-2 px-3 rounded-xl bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-xs font-bold shadow-lg shadow-indigo-500/30 active:scale-95 transition-all" type="button">
+<span class="material-symbols-outlined text-[15px] text-indigo-100" style="font-variation-settings: 'FILL' 1;">lens_blur</span>
+<span>Hard</span>
+</button>
+<!-- Master (Locked) -->
+<button class="flex items-center justify-center gap-1 py-2 px-3 rounded-xl bg-slate-900/40 text-slate-500 text-xs font-medium cursor-not-allowed opacity-75" type="button">
+<span class="material-symbols-outlined text-[15px]">lock</span>
+<span>Master</span>
+</button>
+</div>
+</div>
+<!-- Progress Section -->
+<div class="space-y-2 pt-1">
+<div class="flex items-center justify-between text-xs">
+<span class="text-slate-300 font-medium">Stage 42 / 100 Completed</span>
+<span class="font-mono font-bold text-cyan-400">42%</span>
+</div>
+<div class="w-full h-2.5 rounded-full bg-slate-950/80 overflow-hidden p-0.5">
+<div class="h-full rounded-full bg-gradient-to-r from-indigo-500 via-primary-glow to-primary w-[42%] shadow-sm shadow-cyan-400/50"></div>
+</div>
+</div>
+<!-- Main Action CTA -->
+<button class="w-full group mt-1 relative flex items-center justify-center gap-2 py-3.5 px-6 rounded-2xl bg-gradient-to-r from-primary to-indigo-500 text-slate-950 font-extrabold text-sm uppercase tracking-wider shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all" type="button">
+<span>Play Stage 43</span>
+<span class="material-symbols-outlined text-lg font-black transition-transform group-hover:translate-x-1">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Secondary Card: Challenge Mode -->
+<div class="relative w-full rounded-3xl bg-slate-900/60 p-4 shadow-xl backdrop-blur-md overflow-hidden active:scale-[0.99] transition-transform cursor-pointer">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-purple-500/15 flex items-center justify-center text-purple-400 shrink-0">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<h3 class="text-base font-bold text-white truncate">Challenge Mode</h3>
+</div>
+<p class="text-xs text-slate-400 font-body truncate">Larger grids with immovable obstacles</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800/80 text-slate-300">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</div>
+</div>
+<!-- Secondary Meta & Segment Bar -->
+<div class="mt-3.5 pt-3 flex flex-col gap-2.5 bg-slate-950/40 -mx-4 -mb-4 p-4 rounded-b-3xl">
+<div class="flex items-center justify-between text-xs">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-300 font-semibold text-[10px] uppercase tracking-wider">
+<span class="material-symbols-outlined text-[13px]" style="font-variation-settings: 'FILL' 1;">schedule</span>
+<span>Weekly • 3 Days Left</span>
+</div>
+<span class="text-slate-300 font-mono text-xs font-semibold">8 / 15 Solved</span>
+</div>
+<!-- Segment Progress Indicator -->
+<div class="grid grid-cols-15 gap-1 w-full h-1.5">
+<div class="h-full rounded-full bg-purple-400 shadow-sm shadow-purple-400/50 col-span-8"></div>
+<div class="h-full rounded-full bg-slate-800 col-span-7"></div>
+</div>
+</div>
+</div>
+<!-- Tertiary Card: Timed Rush Mode -->
+<div class="relative w-full rounded-3xl bg-slate-900/60 p-4 shadow-xl backdrop-blur-md overflow-hidden active:scale-[0.99] transition-transform cursor-pointer">
+<div class="flex items-start justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 rounded-2xl bg-cyan-500/15 flex items-center justify-center text-cyan-400 shrink-0">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">timer</span>
+</div>
+<div class="min-w-0">
+<h3 class="text-base font-bold text-white truncate">Timed Rush Mode</h3>
+<p class="text-xs text-slate-400 font-body truncate">Fast-paced blitz against the clock</p>
+</div>
+</div>
+<div class="shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-slate-800/80 text-slate-300">
+<span class="material-symbols-outlined text-base">chevron_right</span>
+</div>
+</div>
+<!-- Metric / Stat Row -->
+<div class="mt-3.5 pt-3 flex items-center justify-between bg-slate-950/40 -mx-4 -mb-4 p-4 rounded-b-3xl">
+<div class="flex items-center gap-2">
+<div class="w-5 h-5 rounded-md bg-amber-500/20 flex items-center justify-center text-amber-400">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</div>
+<span class="text-xs text-slate-400">Personal Best</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-sm font-mono font-extrabold text-amber-300 tracking-tight">14,820 pts</span>
+<button class="px-3 py-1 rounded-xl bg-cyan-500/20 text-cyan-300 text-xs font-bold uppercase tracking-wider hover:bg-cyan-500/30 transition-colors" type="button">
+          Start
+        </button>
+</div>
+</div>
+</div>
+<!-- Daily Special Event Banner -->
+<div class="relative w-full rounded-2xl bg-gradient-to-r from-amber-500/15 via-slate-900/90 to-slate-900/90 p-3.5 shadow-lg backdrop-blur-md overflow-hidden">
+<div class="flex items-center justify-between gap-3">
+<div class="flex items-center gap-3 min-w-0">
+<div class="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-xl" style="font-variation-settings: 'FILL' 1;">calendar_today</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-2">
+<span class="text-xs font-extrabold text-white truncate">Daily Puzzle #182</span>
+<span class="px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-amber-400 text-slate-950">2x Coins</span>
+</div>
+<div class="flex items-center gap-1.5 text-[11px] text-slate-400 font-mono mt-0.5">
+<span class="material-symbols-outlined text-[13px] text-slate-400">update</span>
+<span>Resets in 06h 42m</span>
+</div>
+</div>
+</div>
+<button aria-label="Play daily puzzle" class="shrink-0 w-9 h-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold active:scale-95 transition-transform shadow-md shadow-amber-400/20" type="button">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+</div>
+<script>
+  // Simple micro-interaction for difficulty selection tabs
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      if (this.innerText.includes('Easy') || this.innerText.includes('Hard')) {
+        // Subtle haptic ripple indicator
+        this.classList.add('scale-95');
+        setTimeout(() => this.classList.remove('scale-95'), 120);
+      }
+    });
+  });
+</script></main></body></html>

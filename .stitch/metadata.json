@@ -1,0 +1,71 @@
+{
+  "projectId": "12382636482874179328",
+  "projectTitle": "ArrowPuzzleGame",
+  "designSystemAsset": "assets/12463757339717558344",
+  "designSystemName": "ArrowPuzzle Neo-Minimalist",
+  "screens": [
+    {
+      "id": "54eb0d59eda941afafb5cdaf1b5580ea",
+      "title": "Arrow Escape - Home",
+      "deviceType": "MOBILE",
+      "htmlFile": "home_screen.html",
+      "imageFile": "home_screen.png"
+    },
+    {
+      "id": "7bd52fc52b2e4ea4b7b76f427c250918",
+      "title": "Arrow Escape - Stage 42 (Gameplay)",
+      "deviceType": "MOBILE",
+      "htmlFile": "gameplay_screen.html",
+      "imageFile": "gameplay_screen.png"
+    },
+    {
+      "id": "138717dc8c8648a9b532af7b338e3ed0",
+      "title": "Arrow Escape - Victory Stage 42",
+      "deviceType": "MOBILE",
+      "htmlFile": "level_completed_screen.html",
+      "imageFile": "level_completed_screen.png"
+    },
+    {
+      "id": "29d39bee526248dc8502b1377188606d",
+      "title": "Arrow Escape - Out of Lives",
+      "deviceType": "MOBILE",
+      "htmlFile": "level_failed_screen.html",
+      "imageFile": "level_failed_screen.png"
+    },
+    {
+      "id": "247c1c28e1964ce6a27c9803b42f4bf6",
+      "title": "Arrow Escape - Game Modes",
+      "deviceType": "MOBILE",
+      "htmlFile": "game_modes_screen.html",
+      "imageFile": "game_modes_screen.png"
+    },
+    {
+      "id": "b0be3d567326425d825cd4f60483fafe",
+      "title": "Arrow Escape - Chapter 2 Map",
+      "deviceType": "MOBILE",
+      "htmlFile": "level_selection_screen.html",
+      "imageFile": "level_selection_screen.png"
+    },
+    {
+      "id": "683cbd0c2937481dad67338316c4e5ca",
+      "title": "Arrow Escape - Settings",
+      "deviceType": "MOBILE",
+      "htmlFile": "settings_screen.html",
+      "imageFile": "settings_screen.png"
+    },
+    {
+      "id": "4e1152c78f6a4bf89c8794e59e4275de",
+      "title": "Arrow Escape - Collections",
+      "deviceType": "MOBILE",
+      "htmlFile": "collections_screen.html",
+      "imageFile": "collections_screen.png"
+    },
+    {
+      "id": "30ed088de7fa4be1b3049bcc5293ad6a",
+      "title": "Arrow Escape - Global Leaderboard",
+      "deviceType": "MOBILE",
+      "htmlFile": "leaderboard_screen.html",
+      "imageFile": "leaderboard_screen.png"
+    }
+  ]
+}
