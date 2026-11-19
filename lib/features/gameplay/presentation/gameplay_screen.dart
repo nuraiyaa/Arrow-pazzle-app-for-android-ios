@@ -2,13 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../domain/engine/game_session.dart';
+import '../../../domain/engine/reverse_puzzle_generator.dart';
 import '../../../shared/widgets/neo_badge.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
 import '../../../shared/widgets/neo_icon.dart';
+import 'widgets/arrow_board_canvas.dart';
 
-class GameplayScreen extends StatelessWidget {
+class GameplayScreen extends StatefulWidget {
   const GameplayScreen({super.key});
+
+  @override
+  State<GameplayScreen> createState() => _GameplayScreenState();
+}
+
+class _GameplayScreenState extends State<GameplayScreen> {
+  late GameSession _session;
+
+  @override
+  void initState() {
+    super.initState();
+    _startNewGame();
+  }
+
+  void _startNewGame() {
+    // Generate a guaranteed 100% solvable puzzle
+    final board = ReversePuzzleGenerator.generate(
+      const PuzzleGenerationConfig(width: 6, height: 6, arrowCount: 20),
+    );
+    _session = GameSession(board: board);
+  }
+
+  void _onArrowTapped(String arrowId) {
+    setState(() {
+      final result = _session.tapArrow(arrowId);
+      if (result.outcome == TapOutcome.levelWon) {
+        _showVictoryDialog();
+      } else if (result.outcome == TapOutcome.outOfHearts) {
+        _showDefeatDialog();
+      }
+    });
+  }
+
+  void _onHintRequested() {
+    setState(() {
+      _session.requestHint();
+    });
+  }
+
+  void _onUndo() {
+    setState(() {
+      _session.undo();
+    });
+  }
+
+  void _onRestart() {
+    setState(() {
+      _startNewGame();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +79,7 @@ class GameplayScreen extends StatelessWidget {
                 children: [
                   NeoButton.icon(
                     icon: NeoIconType.pause,
-                    onPressed: () => _showPauseDialog(context),
+                    onPressed: () => _showPauseDialog(),
                     height: 42,
                     width: 42,
                   ),
@@ -35,14 +88,14 @@ class GameplayScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.brandPrimary.withOpacity(0.15),
+                          color: AppColors.brandPrimary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.brandPrimary.withOpacity(0.4)),
+                          border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.4)),
                         ),
-                        child: const Text(
-                          'STAGE 42',
-                          style: TextStyle(
-                            fontSize: 14,
+                        child: Text(
+                          'STAGE 42 (${_session.board.remainingCount} LEFT)',
+                          style: const TextStyle(
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1,
                             color: AppColors.brandPrimary,
@@ -58,7 +111,7 @@ class GameplayScreen extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      NeoBadge.hearts(3),
+                      NeoBadge.hearts(_session.hearts, maxHearts: _session.maxHearts),
                       const SizedBox(width: 8),
                       NeoBadge.coins(2450),
                     ],
@@ -69,67 +122,20 @@ class GameplayScreen extends StatelessWidget {
 
             const Spacer(),
 
-            // Placeholder for CustomPainter Arrow Board (To be fully integrated in Phase 4)
+            // CustomPainter Interactive Arrow Board Canvas
             Center(
-              child: Container(
-                width: 320,
-                height: 320,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.surfaceBorder, width: 1.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.brandPrimary.withOpacity(0.1),
-                      blurRadius: 30,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: GridView.builder(
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 6,
-                    mainAxisSpacing: 6,
-                    crossAxisSpacing: 6,
-                  ),
-                  itemCount: 36,
-                  itemBuilder: (context, index) {
-                    final isGoldenHint = index == 16;
-                    final directions = [
-                      NeoIconType.arrowUp,
-                      NeoIconType.arrowRight,
-                      NeoIconType.arrowDown,
-                      NeoIconType.arrowLeft,
-                    ];
-                    final dir = directions[index % directions.length];
-
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: isGoldenHint ? AppColors.accentGold.withOpacity(0.25) : AppColors.surfaceCardElevated,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isGoldenHint ? AppColors.accentGold : AppColors.surfaceBorderSubtle,
-                          width: isGoldenHint ? 2 : 1,
-                        ),
-                      ),
-                      child: Center(
-                        child: NeoIcon(
-                          type: dir,
-                          size: 18,
-                          color: isGoldenHint ? AppColors.accentGold : AppColors.textPrimary.withOpacity(0.85),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+              child: ArrowBoardCanvas(
+                board: _session.board,
+                activeHintId: _session.activeHintArrowId,
+                collidingArrowId: _session.lastCollidingArrowId,
+                onArrowTapped: _onArrowTapped,
+                size: 330,
               ),
             ),
 
             const Spacer(),
 
-            // Tool Actions Dock
+            // Tactical Control Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -138,20 +144,20 @@ class GameplayScreen extends StatelessWidget {
                   _buildToolButton(
                     icon: NeoIconType.undo,
                     label: AppStrings.undo,
-                    badge: 'x3',
-                    onTap: () {},
+                    badge: _session.canUndo ? '✓' : null,
+                    onTap: _session.canUndo ? _onUndo : () {},
                   ),
                   _buildToolButton(
                     icon: NeoIconType.hint,
                     label: AppStrings.hint,
                     badge: 'x2',
                     isGold: true,
-                    onTap: () {},
+                    onTap: _onHintRequested,
                   ),
                   _buildToolButton(
                     icon: NeoIconType.refresh,
                     label: AppStrings.restart,
-                    onTap: () {},
+                    onTap: _onRestart,
                   ),
                 ],
               ),
@@ -159,18 +165,18 @@ class GameplayScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // Ad Banner Container Slot
+            // Non-intrusive Banner Placement
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               height: 50,
               decoration: BoxDecoration(
-                color: AppColors.surfaceCard.withOpacity(0.6),
+                color: AppColors.surfaceCard.withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.surfaceBorderSubtle),
               ),
               child: const Center(
                 child: Text(
-                  'ADVERTISEMENT',
+                  'ADVERTISEMENT (ADMOB BANNER DOCK)',
                   style: TextStyle(
                     fontSize: 10,
                     letterSpacing: 1.5,
@@ -239,7 +245,118 @@ class GameplayScreen extends StatelessWidget {
     );
   }
 
-  void _showPauseDialog(BuildContext context) {
+  void _showVictoryDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: NeoCard(
+          hasGlow: true,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  NeoIcon(type: NeoIconType.star, size: 32, color: AppColors.accentGold),
+                  SizedBox(width: 8),
+                  NeoIcon(type: NeoIconType.star, size: 40, color: AppColors.accentGold),
+                  SizedBox(width: 8),
+                  NeoIcon(type: NeoIconType.star, size: 32, color: AppColors.accentGold),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                AppStrings.stageComplete,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: 1),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Solved in ${_session.movesCount} Moves! Accuracy: 100%',
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              NeoButton(
+                text: AppStrings.claimDouble,
+                subtext: '+240 Coins (Watch Short Video)',
+                variant: NeoButtonVariant.rewarded,
+                width: double.infinity,
+                onPressed: () {
+                  ctx.pop();
+                  _onRestart();
+                },
+              ),
+              const SizedBox(height: 12),
+              NeoButton(
+                text: AppStrings.nextLevel,
+                width: double.infinity,
+                onPressed: () {
+                  ctx.pop();
+                  _onRestart();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showDefeatDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: NeoCard(
+          borderColor: AppColors.accentWarning,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const NeoIcon(type: NeoIconType.heart, size: 48, color: AppColors.accentWarning),
+              const SizedBox(height: 16),
+              const Text(
+                AppStrings.outOfMoves,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.accentWarning),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Only ${_session.board.remainingCount} arrows were left to escape!',
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              NeoButton(
+                text: 'WATCH AD (+1 LIFE)',
+                variant: NeoButtonVariant.primary,
+                width: double.infinity,
+                onPressed: () {
+                  ctx.pop();
+                  setState(() {
+                    _session.hearts = 1;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+              NeoButton(
+                text: 'RESTART STAGE',
+                variant: NeoButtonVariant.secondary,
+                width: double.infinity,
+                onPressed: () {
+                  ctx.pop();
+                  _onRestart();
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPauseDialog() {
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
