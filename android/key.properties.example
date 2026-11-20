@@ -1,0 +1,8 @@
+# Example key.properties for Google Play Store production release
+# Copy this file to android/key.properties and fill in your actual keystore details
+# IMPORTANT: Never commit your actual key.properties or .jks file to public Git repositories!
+
+storePassword=your_keystore_password
+keyPassword=your_key_password
+keyAlias=upload
+storeFile=../upload-keystore.jks
