@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/providers/progress_provider.dart';
+import '../../../domain/models/skin_model.dart';
 import '../../../shared/widgets/neo_badge.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
 import '../../../shared/widgets/neo_icon.dart';
 
-class CollectionsScreen extends StatelessWidget {
+class CollectionsScreen extends ConsumerWidget {
   const CollectionsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final coins = ref.watch(progressNotifierProvider.notifier).coins;
+    final equippedSkin = ref.watch(progressNotifierProvider.notifier).equippedSkin;
+    final unlockedSkinIds = ref.watch(progressNotifierProvider.notifier).unlockedSkinIds;
+
     return Scaffold(
       backgroundColor: AppColors.surfaceBackground,
       appBar: AppBar(
@@ -25,7 +32,7 @@ class CollectionsScreen extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: NeoBadge.coins(2450),
+            child: NeoBadge.coins(coins),
           ),
         ],
       ),
@@ -36,40 +43,44 @@ class CollectionsScreen extends StatelessWidget {
             // Active Equipped Showcase Card
             NeoCard(
               hasGlow: true,
+              borderColor: equippedSkin.primaryColor,
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.accentSecondary.withOpacity(0.2),
+                      color: AppColors.accentSecondary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Text('CURRENTLY EQUIPPED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.accentSecondary)),
+                    child: const Text(
+                      'CURRENTLY EQUIPPED',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.accentSecondary),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Container(
-                    width: 72,
-                    height: 72,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceCardElevated,
                       shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.brandPrimary, width: 2),
+                      border: Border.all(color: equippedSkin.primaryColor, width: 2),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.brandPrimary.withOpacity(0.4),
+                          color: equippedSkin.primaryColor.withValues(alpha: 0.4),
                           blurRadius: 20,
                         ),
                       ],
                     ),
-                    child: const Center(
-                      child: NeoIcon(type: NeoIconType.arrowUp, size: 36, color: AppColors.brandPrimary),
+                    child: Center(
+                      child: NeoIcon(type: NeoIconType.arrowUp, size: 40, color: equippedSkin.primaryColor),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text('Neon Prism Arrow', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                  Text(equippedSkin.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  const Text('Legendary • +10% XP Bonus', style: TextStyle(fontSize: 12, color: AppColors.accentCyan)),
+                  Text('${equippedSkin.rarity} • ${equippedSkin.perkText}', style: TextStyle(fontSize: 12, color: equippedSkin.primaryColor)),
                 ],
               ),
             ),
@@ -78,64 +89,110 @@ class CollectionsScreen extends StatelessWidget {
 
             const Align(
               alignment: Alignment.centerLeft,
-              child: Text('AVAILABLE ARROW THEMES', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1, color: AppColors.textSecondary)),
+              child: Text(
+                'ARROW SKINS & THEMES',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1, color: AppColors.textSecondary),
+              ),
             ),
             const SizedBox(height: 12),
 
             // Skins Grid
-            GridView.count(
+            GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
-              children: [
-                _buildSkinCard('Classic Obsidian', AppColors.textPrimary, isEquipped: true),
-                _buildSkinCard('Cyber Neon', AppColors.accentCyan, isUnlocked: true),
-                _buildSkinCard('Golden Royal', AppColors.accentGold, cost: '500'),
-                _buildSkinCard('Emerald Matrix', AppColors.accentSecondary, lockedReason: 'Stage 50'),
-                _buildSkinCard('Solar Flare', AppColors.accentGold, lockedReason: 'Timed 10'),
-                _buildSkinCard('Void Amethyst', AppColors.accentPurple, lockedReason: 'Star Chest'),
-              ],
+              itemCount: ArrowSkin.allSkins.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 0.95,
+              ),
+              itemBuilder: (context, index) {
+                final skin = ArrowSkin.allSkins[index];
+                final isEquipped = skin.id == equippedSkin.id;
+                final isUnlocked = unlockedSkinIds.contains(skin.id);
+
+                return NeoCard(
+                  padding: const EdgeInsets.all(12),
+                  borderColor: isEquipped ? skin.primaryColor : null,
+                  hasGlow: isEquipped,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceCardElevated,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: skin.primaryColor.withValues(alpha: 0.3)),
+                        ),
+                        child: NeoIcon(type: NeoIconType.arrowUp, size: 28, color: skin.primaryColor),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        skin.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        skin.rarity,
+                        style: TextStyle(fontSize: 10, color: skin.primaryColor, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      if (isEquipped)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentSecondary.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text('EQUIPPED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.accentSecondary)),
+                        )
+                      else if (isUnlocked)
+                        NeoButton(
+                          text: 'EQUIP',
+                          height: 30,
+                          onPressed: () {
+                            ref.read(progressNotifierProvider.notifier).equipSkin(skin.id);
+                          },
+                        )
+                      else if (skin.unlockType == SkinUnlockType.coins)
+                        NeoButton(
+                          text: 'BUY ${skin.costCoins}',
+                          height: 30,
+                          variant: NeoButtonVariant.rewarded,
+                          onPressed: coins >= skin.costCoins
+                              ? () async {
+                                  final ok = await ref.read(progressNotifierProvider.notifier).unlockSkin(skin.id);
+                                  if (ok) {
+                                    ref.read(progressNotifierProvider.notifier).equipSkin(skin.id);
+                                  }
+                                }
+                              : null,
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceCardElevated,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            skin.unlockType == SkinUnlockType.stage
+                                ? 'Stage ${skin.requiredStage}'
+                                : '${skin.requiredTimedScore} pts',
+                            style: const TextStyle(fontSize: 9, color: AppColors.textMuted, fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSkinCard(
-    String name,
-    Color color, {
-    bool isEquipped = false,
-    bool isUnlocked = false,
-    String? cost,
-    String? lockedReason,
-  }) {
-    return NeoCard(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          NeoIcon(type: NeoIconType.arrowUp, size: 26, color: color),
-          const SizedBox(height: 8),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 6),
-          if (isEquipped)
-            const Text('EQUIPPED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.accentSecondary))
-          else if (isUnlocked)
-            const Text('EQUIP', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: AppColors.brandPrimary))
-          else if (cost != null)
-            Text('$cost Coins', style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.accentGold))
-          else if (lockedReason != null)
-            Text(lockedReason, style: const TextStyle(fontSize: 9, color: AppColors.textMuted)),
-        ],
       ),
     );
   }

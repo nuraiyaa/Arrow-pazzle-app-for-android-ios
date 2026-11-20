@@ -83,13 +83,22 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
   }
 
   void _onArrowTapped(String arrowId) {
+    final audioHaptic = ref.read(audioHapticServiceProvider);
+    audioHaptic.onArrowTap();
+
     setState(() {
       final result = _session.tapArrow(arrowId);
       if (result.outcome == TapOutcome.levelWon) {
         _timer?.cancel();
+        audioHaptic.onVictory();
         _onVictory();
+      } else if (result.outcome == TapOutcome.arrowEscaped) {
+        audioHaptic.onArrowEscape();
+      } else if (result.outcome == TapOutcome.collisionError) {
+        audioHaptic.onCollisionError();
       } else if (result.outcome == TapOutcome.outOfHearts) {
         _timer?.cancel();
+        audioHaptic.onCollisionError();
         _showDefeatDialog(isTimeOut: false);
       } else if (result.outcome == TapOutcome.outOfTime) {
         _timer?.cancel();
@@ -108,10 +117,19 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
     _showVictoryDialog(stars);
   }
 
-  void _onHintRequested() {
-    setState(() {
-      _session.requestHint();
-    });
+  void _onHintRequested() async {
+    final hasHint = await ref.read(progressNotifierProvider.notifier).consumeHint();
+    if (hasHint) {
+      setState(() {
+        _session.requestHint();
+      });
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No hints left! Watch an ad or buy with coins.')),
+        );
+      }
+    }
   }
 
   void _onUndo() {
@@ -129,6 +147,8 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
   @override
   Widget build(BuildContext context) {
     final coins = ref.watch(progressNotifierProvider.notifier).coins;
+    final equippedSkin = ref.watch(progressNotifierProvider.notifier).equippedSkin;
+    final hintsCount = ref.watch(progressNotifierProvider.notifier).hints;
 
     return Scaffold(
       backgroundColor: AppColors.surfaceBackground,
@@ -249,6 +269,7 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
             Center(
               child: ArrowBoardCanvas(
                 board: _session.board,
+                skin: equippedSkin,
                 activeHintId: _session.activeHintArrowId,
                 collidingArrowId: _session.lastCollidingArrowId,
                 onArrowTapped: _onArrowTapped,
@@ -273,7 +294,7 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
                   _buildToolButton(
                     icon: NeoIconType.hint,
                     label: AppStrings.hint,
-                    badge: 'x2',
+                    badge: 'x$hintsCount',
                     isGold: true,
                     onTap: _onHintRequested,
                   ),

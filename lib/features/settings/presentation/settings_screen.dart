@@ -1,21 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/providers/progress_provider.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
 import '../../../shared/widgets/neo_icon.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _musicEnabled = true;
   bool _sfxEnabled = true;
   bool _hapticsEnabled = true;
+
+  @override
+  void initState() {
+    super.initState();
+    final audioHaptic = ref.read(audioHapticServiceProvider);
+    _musicEnabled = audioHaptic.isMusicEnabled;
+    _sfxEnabled = audioHaptic.isSfxEnabled;
+    _hapticsEnabled = audioHaptic.isHapticsEnabled;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,11 +59,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: EdgeInsets.zero,
             child: Column(
               children: [
-                _buildToggleRow('Music', _musicEnabled, (val) => setState(() => _musicEnabled = val)),
+                _buildToggleRow('Music', _musicEnabled, (val) {
+                  setState(() => _musicEnabled = val);
+                  ref.read(audioHapticServiceProvider).isMusicEnabled = val;
+                }),
                 const Divider(height: 1),
-                _buildToggleRow('Sound Effects (SFX)', _sfxEnabled, (val) => setState(() => _sfxEnabled = val)),
+                _buildToggleRow('Sound Effects (SFX)', _sfxEnabled, (val) {
+                  setState(() => _sfxEnabled = val);
+                  ref.read(audioHapticServiceProvider).isSfxEnabled = val;
+                }),
                 const Divider(height: 1),
-                _buildToggleRow('Haptic Feedback (Vibration)', _hapticsEnabled, (val) => setState(() => _hapticsEnabled = val)),
+                _buildToggleRow('Haptic Feedback (Vibration)', _hapticsEnabled, (val) {
+                  setState(() => _hapticsEnabled = val);
+                  ref.read(audioHapticServiceProvider).isHapticsEnabled = val;
+                }),
               ],
             ),
           ),

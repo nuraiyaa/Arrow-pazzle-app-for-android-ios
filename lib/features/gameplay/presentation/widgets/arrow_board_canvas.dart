@@ -5,10 +5,12 @@ import '../../../../domain/models/arrow_direction.dart';
 import '../../../../domain/models/arrow_entity.dart';
 import '../../../../domain/models/grid_position.dart';
 import '../../../../domain/models/puzzle_board.dart';
+import '../../../../domain/models/skin_model.dart';
 
-/// High-Performance Hardware-Accelerated Arrow Board Canvas
+/// High-Performance Hardware-Accelerated Arrow Board Canvas supporting Custom Skins & Haptics
 class ArrowBoardCanvas extends StatefulWidget {
   final PuzzleBoard board;
+  final ArrowSkin? skin;
   final String? activeHintId;
   final String? collidingArrowId;
   final Function(String arrowId) onArrowTapped;
@@ -17,6 +19,7 @@ class ArrowBoardCanvas extends StatefulWidget {
   const ArrowBoardCanvas({
     super.key,
     required this.board,
+    this.skin,
     this.activeHintId,
     this.collidingArrowId,
     required this.onArrowTapped,
@@ -77,6 +80,7 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with SingleTickerPr
           size: Size(widget.size, widget.size),
           painter: _BoardPainter(
             board: widget.board,
+            skin: widget.skin ?? ArrowSkin.allSkins.first,
             activeHintId: widget.activeHintId,
             collidingArrowId: widget.collidingArrowId,
             shakeProgress: _animController.value,
@@ -89,12 +93,14 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with SingleTickerPr
 
 class _BoardPainter extends CustomPainter {
   final PuzzleBoard board;
+  final ArrowSkin skin;
   final String? activeHintId;
   final String? collidingArrowId;
   final double shakeProgress;
 
   _BoardPainter({
     required this.board,
+    required this.skin,
     this.activeHintId,
     this.collidingArrowId,
     required this.shakeProgress,
@@ -195,10 +201,10 @@ class _BoardPainter extends CustomPainter {
       tileRadius,
     );
 
-    // Draw Glow for Hinted Arrow
+    // Draw Glow for Hinted Arrow or Equipped Skin Aura
     if (isHinted) {
       final glowPaint = Paint()
-        ..color = AppColors.accentGold.withValues(alpha: 0.45)
+        ..color = AppColors.accentGold.withValues(alpha: 0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
       canvas.drawRRect(tileRect, glowPaint);
     }
@@ -219,17 +225,17 @@ class _BoardPainter extends CustomPainter {
           ? AppColors.accentGold
           : isColliding
               ? AppColors.accentWarning
-              : AppColors.surfaceBorderSubtle
+              : skin.primaryColor.withValues(alpha: 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = isHinted || isColliding ? 2.0 : 1.0;
     canvas.drawRRect(tileRect, borderPaint);
 
-    // Draw Direction Arrow Vector
+    // Draw Direction Arrow Vector using equipped skin colors
     final arrowColor = isHinted
         ? AppColors.accentGold
         : isColliding
             ? AppColors.accentWarning
-            : AppColors.textPrimary;
+            : skin.primaryColor;
 
     _drawArrowVector(
       canvas,
@@ -275,6 +281,7 @@ class _BoardPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _BoardPainter oldDelegate) {
     return oldDelegate.board != board ||
+        oldDelegate.skin != skin ||
         oldDelegate.activeHintId != activeHintId ||
         oldDelegate.collidingArrowId != collidingArrowId ||
         oldDelegate.shakeProgress != shakeProgress;
