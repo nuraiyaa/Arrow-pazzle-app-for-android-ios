@@ -39,7 +39,14 @@ class LeaderboardScreen extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.surfaceBorderSubtle),
+                border: Border.all(color: AppColors.surfaceBorder),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -218,9 +225,16 @@ class LeaderboardScreen extends ConsumerWidget {
           width: 84,
           height: height,
           decoration: BoxDecoration(
-            color: AppColors.surfaceCardElevated,
+            color: AppColors.surfaceCard,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             border: Border.all(color: color.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.12),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -246,7 +260,14 @@ class LeaderboardScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.surfaceBorderSubtle),
+        border: Border.all(color: AppColors.surfaceBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 6,
+            offset: Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         children: [

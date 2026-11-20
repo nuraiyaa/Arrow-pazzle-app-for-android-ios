@@ -195,11 +195,20 @@ class _GameModesScreenState extends ConsumerState<GameModesScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.brandPrimary : AppColors.surfaceCardElevated,
+          color: isSelected ? AppColors.brandPrimary : AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.brandPrimary : AppColors.surfaceBorderSubtle,
+            color: isSelected ? AppColors.brandPrimary : AppColors.surfaceBorder,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.brandPrimary.withValues(alpha: 0.25),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Text(
           tier.displayName,

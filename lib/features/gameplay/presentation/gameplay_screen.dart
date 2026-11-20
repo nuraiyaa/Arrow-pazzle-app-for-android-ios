@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/ads/neo_banner_ad_widget.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/providers/ad_provider.dart';
@@ -92,7 +93,10 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
       if (result.outcome == TapOutcome.levelWon) {
         _timer?.cancel();
         audioHaptic.onVictory();
-        _onVictory();
+        // Give 480ms for the final arrow to complete its satisfying glide off-screen
+        Future.delayed(const Duration(milliseconds: 480), () {
+          if (mounted) _onVictory();
+        });
       } else if (result.outcome == TapOutcome.arrowEscaped) {
         audioHaptic.onArrowEscape();
       } else if (result.outcome == TapOutcome.collisionError) {
@@ -100,7 +104,10 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
       } else if (result.outcome == TapOutcome.outOfHearts) {
         _timer?.cancel();
         audioHaptic.onCollisionError();
-        _showDefeatDialog(isTimeOut: false);
+        // Give 350ms for bump & shake recoil animation before showing defeat modal
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted) _showDefeatDialog(isTimeOut: false);
+        });
       } else if (result.outcome == TapOutcome.outOfTime) {
         _timer?.cancel();
         _showDefeatDialog(isTimeOut: true);
@@ -243,7 +250,7 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
                           ),
                         Text(
                           'Score: ${_session.score}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                         ),
                       ],
                     ),
@@ -310,26 +317,10 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
 
             const SizedBox(height: 16),
 
-            // Reserved AdMob Banner Dock
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              height: 50,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceCard.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.surfaceBorderSubtle),
-              ),
-              child: const Center(
-                child: Text(
-                  'ADVERTISEMENT (ADMOB BANNER DOCK)',
-                  style: TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textMuted,
-                  ),
-                ),
-              ),
+            // AdMob Banner Dock (Non-intrusive bottom placement)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: NeoBannerAdWidget(),
             ),
             const SizedBox(height: 12),
           ],

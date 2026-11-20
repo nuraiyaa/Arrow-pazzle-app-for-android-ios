@@ -89,9 +89,16 @@ class _NeoBannerAdWidgetState extends State<NeoBannerAdWidget> {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard.withValues(alpha: 0.8),
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBorderSubtle),
+        border: Border.all(color: AppColors.surfaceBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(

@@ -72,27 +72,34 @@ class LevelSelectionScreen extends ConsumerWidget {
                   child: Container(
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.brandPrimary.withValues(alpha: 0.2)
+                          ? AppColors.brandPrimary.withValues(alpha: 0.12)
                           : isCompleted
-                              ? AppColors.surfaceCardElevated
-                              : AppColors.surfaceCard.withValues(alpha: 0.4),
+                              ? AppColors.surfaceCard
+                              : AppColors.surfaceBorderSubtle,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isActive
                             ? AppColors.brandPrimary
                             : isCompleted
-                                ? AppColors.surfaceBorderSubtle
-                                : Colors.transparent,
+                                ? AppColors.surfaceBorder
+                                : AppColors.surfaceBorderSubtle,
                         width: isActive ? 2 : 1,
                       ),
                       boxShadow: isActive
                           ? [
                               BoxShadow(
-                                color: AppColors.brandPrimary.withValues(alpha: 0.4),
+                                color: AppColors.brandPrimary.withValues(alpha: 0.25),
                                 blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ]
-                          : null,
+                          : [
+                              const BoxShadow(
+                                color: Color(0x06000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -105,7 +112,7 @@ class LevelSelectionScreen extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
-                              color: isActive ? AppColors.brandPrimary : Colors.white,
+                              color: isActive ? AppColors.brandPrimary : AppColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),

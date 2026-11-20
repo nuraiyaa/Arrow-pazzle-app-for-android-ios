@@ -123,7 +123,7 @@ class CollectionsScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceCardElevated,
+                          color: AppColors.surfaceBackground,
                           shape: BoxShape.circle,
                           border: Border.all(color: skin.primaryColor.withValues(alpha: 0.3)),
                         ),

@@ -5,36 +5,43 @@ import 'grid_position.dart';
 class PuzzleBoard {
   final int width;
   final int height;
-  final Map<GridPosition, ArrowEntity> _arrows;
+  final Map<String, ArrowEntity> _arrows;
   final Set<GridPosition> obstacles;
 
   PuzzleBoard({
     required this.width,
     required this.height,
-    Map<GridPosition, ArrowEntity>? arrows,
+    Map<dynamic, ArrowEntity>? arrows,
     Set<GridPosition>? obstacles,
-  })  : _arrows = arrows != null ? Map.from(arrows) : {},
-        obstacles = obstacles != null ? Set.from(obstacles) : {};
+  })  : _arrows = {},
+        obstacles = obstacles != null ? Set.from(obstacles) : {} {
+    if (arrows != null) {
+      for (final entry in arrows.entries) {
+        _arrows[entry.value.id] = entry.value;
+      }
+    }
+  }
 
-  List<ArrowEntity> get activeArrows => _arrows.values.where((a) => a.state != ArrowState.cleared).toList();
+  List<ArrowEntity> get activeArrows =>
+      _arrows.values.where((a) => a.state != ArrowState.cleared).toList();
 
   int get remainingCount => activeArrows.length;
 
   bool get isCleared => remainingCount == 0;
 
   ArrowEntity? getArrowAt(GridPosition pos) {
-    final arrow = _arrows[pos];
-    if (arrow != null && arrow.state != ArrowState.cleared) {
-      return arrow;
+    for (final arrow in activeArrows) {
+      if (arrow.occupiedPositions.contains(pos)) {
+        return arrow;
+      }
     }
     return null;
   }
 
   ArrowEntity? getArrowById(String id) {
-    for (final arrow in _arrows.values) {
-      if (arrow.id == id && arrow.state != ArrowState.cleared) {
-        return arrow;
-      }
+    final arrow = _arrows[id];
+    if (arrow != null && arrow.state != ArrowState.cleared) {
+      return arrow;
     }
     return null;
   }
@@ -46,30 +53,24 @@ class PuzzleBoard {
   }
 
   void addArrow(ArrowEntity arrow) {
-    _arrows[arrow.position] = arrow;
+    _arrows[arrow.id] = arrow;
   }
 
   void updateArrow(ArrowEntity arrow) {
-    _arrows[arrow.position] = arrow;
+    _arrows[arrow.id] = arrow;
   }
 
   void removeArrow(String id) {
-    GridPosition? targetPos;
-    for (final entry in _arrows.entries) {
-      if (entry.value.id == id) {
-        targetPos = entry.key;
-        break;
-      }
-    }
-    if (targetPos != null) {
-      _arrows[targetPos] = _arrows[targetPos]!.copyWith(state: ArrowState.cleared);
+    final arrow = _arrows[id];
+    if (arrow != null) {
+      _arrows[id] = arrow.copyWith(state: ArrowState.cleared);
     }
   }
 
   PuzzleBoard clone() {
-    final clonedArrows = <GridPosition, ArrowEntity>{};
+    final clonedArrows = <String, ArrowEntity>{};
     for (final entry in _arrows.entries) {
-      clonedArrows[entry.key] = entry.value.copyWith();
+      clonedArrows[entry.key] = entry.value;
     }
     return PuzzleBoard(
       width: width,

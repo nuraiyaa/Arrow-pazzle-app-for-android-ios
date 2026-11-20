@@ -255,7 +255,14 @@ class HomeScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceCard,
                   borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: AppColors.surfaceBorderSubtle),
+                  border: Border.all(color: AppColors.surfaceBorder),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0C000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,

@@ -26,25 +26,25 @@ class NeoCard extends StatelessWidget {
     final content = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard.withOpacity(0.9),
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(
-          color: hasGlow ? AppColors.brandPrimary.withOpacity(0.6) : effectiveBorderColor,
-          width: hasGlow ? 1.5 : 1,
+          color: hasGlow ? AppColors.brandPrimary.withValues(alpha: 0.4) : effectiveBorderColor,
+          width: hasGlow ? 1.5 : 1.0,
         ),
         boxShadow: hasGlow
             ? [
                 BoxShadow(
-                  color: AppColors.brandPrimary.withOpacity(0.2),
-                  blurRadius: 18,
+                  color: AppColors.brandPrimary.withValues(alpha: 0.15),
+                  blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
               ]
             : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.25),
+                const BoxShadow(
+                  color: Color(0x0D000000),
                   blurRadius: 10,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
       ),

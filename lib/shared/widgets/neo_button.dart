@@ -146,18 +146,26 @@ class _NeoButtonState extends State<NeoButton> with SingleTickerProviderStateMix
         return BoxDecoration(
           color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceBorderSubtle, width: 1.5),
+          border: Border.all(color: AppColors.surfaceBorder, width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x06000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
         );
 
       case NeoButtonVariant.iconOnly:
         return BoxDecoration(
-          color: AppColors.surfaceCard.withOpacity(0.8),
+          color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(widget.height / 2),
-          border: Border.all(color: AppColors.surfaceBorderSubtle),
-          boxShadow: [
+          border: Border.all(color: AppColors.surfaceBorder),
+          boxShadow: const [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Color(0x08000000),
               blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         );

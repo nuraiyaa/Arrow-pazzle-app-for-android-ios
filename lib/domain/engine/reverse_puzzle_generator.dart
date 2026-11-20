@@ -22,23 +22,23 @@ class PuzzleGenerationConfig {
   });
 
   factory PuzzleGenerationConfig.easy() {
-    return const PuzzleGenerationConfig(width: 5, height: 5, arrowCount: 12);
+    return const PuzzleGenerationConfig(width: 6, height: 6, arrowCount: 10);
   }
 
   factory PuzzleGenerationConfig.medium() {
-    return const PuzzleGenerationConfig(width: 6, height: 6, arrowCount: 22);
+    return const PuzzleGenerationConfig(width: 7, height: 7, arrowCount: 16);
   }
 
   factory PuzzleGenerationConfig.hard() {
-    return const PuzzleGenerationConfig(width: 7, height: 7, arrowCount: 32, obstacleCount: 2);
+    return const PuzzleGenerationConfig(width: 8, height: 8, arrowCount: 22, obstacleCount: 2);
   }
 
   factory PuzzleGenerationConfig.master() {
-    return const PuzzleGenerationConfig(width: 8, height: 8, arrowCount: 44, obstacleCount: 4);
+    return const PuzzleGenerationConfig(width: 9, height: 9, arrowCount: 28, obstacleCount: 3);
   }
 }
 
-/// Guaranteed 100% Solvable Reverse-Play Puzzle Generator
+/// Guaranteed 100% Solvable Reverse-Play Puzzle Generator supporting Polyline & Maze Arrows
 class ReversePuzzleGenerator {
   ReversePuzzleGenerator._();
 
@@ -48,10 +48,12 @@ class ReversePuzzleGenerator {
     for (int attempt = 0; attempt < 50; attempt++) {
       final board = PuzzleBoard(width: config.width, height: config.height);
 
-      // 1. Place optional obstacles randomly first
+      // 1. Place optional obstacles
       final placedObstacles = <GridPosition>{};
       int obstaclesToPlace = config.obstacleCount;
-      while (obstaclesToPlace > 0) {
+      int obsAttempts = 0;
+      while (obstaclesToPlace > 0 && obsAttempts < 100) {
+        obsAttempts++;
         final x = random.nextInt(config.width);
         final y = random.nextInt(config.height);
         final pos = GridPosition(x, y);
@@ -62,71 +64,200 @@ class ReversePuzzleGenerator {
         }
       }
 
-      // 2. Reverse insertion of arrows
+      // 2. Reverse insertion of polyline arrows
       int arrowsPlaced = 0;
       int failsafeAttempts = 0;
 
-      while (arrowsPlaced < config.arrowCount && failsafeAttempts < 500) {
+      while (arrowsPlaced < config.arrowCount && failsafeAttempts < 600) {
         failsafeAttempts++;
 
-        // Pick an unoccupied cell
-        final x = random.nextInt(config.width);
-        final y = random.nextInt(config.height);
-        final pos = GridPosition(x, y);
+        final headX = random.nextInt(config.width);
+        final headY = random.nextInt(config.height);
+        final headPos = GridPosition(headX, headY);
 
-        if (board.isCellOccupied(pos)) continue;
+        if (board.isCellOccupied(headPos)) continue;
 
-        // Find directions that are currently clear to boundary
-        final validDirections = <ArrowDirection>[];
+        // Check which directions have a clear ray from headPos to the boundary
+        final validExitDirections = <ArrowDirection>[];
         for (final dir in ArrowDirection.values) {
           final tempArrow = ArrowEntity(
-            id: 'temp',
-            position: pos,
+            id: 'temp_head',
+            position: headPos,
             direction: dir,
+            pathPoints: [headPos],
           );
-          final rayResult = RaycastCollisionDetector.validatePath(board, tempArrow);
-          if (rayResult.isClear) {
-            validDirections.add(dir);
+          final ray = RaycastCollisionDetector.validatePath(board, tempArrow);
+          if (ray.isClear) {
+            validExitDirections.add(dir);
           }
         }
 
-        if (validDirections.isNotEmpty) {
-          // Choose one valid direction
-          final chosenDir = validDirections[random.nextInt(validDirections.length)];
-          final arrowId = 'arrow_${pos.x}_${pos.y}_$arrowsPlaced';
-          final newArrow = ArrowEntity(
+        if (validExitDirections.isEmpty) continue;
+
+        final headDir = validExitDirections[random.nextInt(validExitDirections.length)];
+        final backDir = headDir.opposite;
+
+        // Grow the body backwards from headPos
+        final path = _growArrowPath(board, headPos, backDir, random);
+        if (path.isNotEmpty) {
+          final arrowId = 'arrow_${arrowsPlaced}_${headPos.x}_${headPos.y}';
+          final arrow = ArrowEntity(
             id: arrowId,
-            position: pos,
-            direction: chosenDir,
+            position: headPos,
+            direction: headDir,
+            pathPoints: path, // from tail to head
           );
-          board.addArrow(newArrow);
+
+          board.addArrow(arrow);
           arrowsPlaced++;
         }
       }
 
       // 3. Double-verify solvability with automated solver
       final solverResult = PuzzleSolver.solve(board);
-      if (solverResult.isSolvable && board.remainingCount >= (config.arrowCount * 0.8).toInt()) {
+      final minRequired = (config.arrowCount * 0.75).toInt().clamp(1, config.arrowCount);
+      if (solverResult.isSolvable &&
+          (board.remainingCount >= minRequired || board.remainingCount >= 8) &&
+          board.obstacles.length == config.obstacleCount) {
         return board;
       }
     }
 
-    // Fallback: If heavy density retry reached, return an unconditionally verified minimal solvable board
+    // Fallback: If retry threshold reached, return guaranteed solvable perimeter board
     return _buildDeterministicFallbackBoard(config);
+  }
+
+  /// Grows an arrow body backwards from headPos into available unoccupied cells
+  static List<GridPosition> _growArrowPath(
+    PuzzleBoard board,
+    GridPosition headPos,
+    ArrowDirection backDir,
+    Random random,
+  ) {
+    final path = <GridPosition>[headPos];
+    var current = headPos;
+
+    // Decide body shape type:
+    // 0 = Straight (1 to 2 extra steps)
+    // 1 = L-shape (turn once)
+    // 2 = U-turn or S-shape (turn twice)
+    final shapeType = random.nextInt(3);
+
+    // Initial segment backwards in backDir
+    int segment1Length = 1 + random.nextInt(2);
+    for (int i = 0; i < segment1Length; i++) {
+      final next = current.translate(backDir.dx, backDir.dy);
+      if (next.isWithinBounds(board.width, board.height) &&
+          !board.isCellOccupied(next) &&
+          !path.contains(next)) {
+        current = next;
+        path.add(current);
+      } else {
+        break;
+      }
+    }
+
+    if (shapeType >= 1 && path.length >= 2) {
+      // Pick a perpendicular turn direction
+      final turnDirs = _getPerpendicularDirections(backDir);
+      turnDirs.shuffle(random);
+
+      ArrowDirection? chosenTurnDir;
+      for (final tDir in turnDirs) {
+        final testPos = current.translate(tDir.dx, tDir.dy);
+        if (testPos.isWithinBounds(board.width, board.height) &&
+            !board.isCellOccupied(testPos) &&
+            !path.contains(testPos)) {
+          chosenTurnDir = tDir;
+          break;
+        }
+      }
+
+      if (chosenTurnDir != null) {
+        int segment2Length = 1 + random.nextInt(2);
+        for (int i = 0; i < segment2Length; i++) {
+          final next = current.translate(chosenTurnDir.dx, chosenTurnDir.dy);
+          if (next.isWithinBounds(board.width, board.height) &&
+              !board.isCellOccupied(next) &&
+              !path.contains(next)) {
+            current = next;
+            path.add(current);
+          } else {
+            break;
+          }
+        }
+
+        // Optional second turn for U-turn / winding shapes
+        if (shapeType == 2 && path.length >= 3) {
+          final secondTurnDirs = _getPerpendicularDirections(chosenTurnDir);
+          secondTurnDirs.shuffle(random);
+          for (final sDir in secondTurnDirs) {
+            final next = current.translate(sDir.dx, sDir.dy);
+            if (next.isWithinBounds(board.width, board.height) &&
+                !board.isCellOccupied(next) &&
+                !path.contains(next)) {
+              current = next;
+              path.add(current);
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // Path was built from head backwards to tail; reverse so it is TAIL -> HEAD
+    return path.reversed.toList();
+  }
+
+  static List<ArrowDirection> _getPerpendicularDirections(ArrowDirection dir) {
+    if (dir == ArrowDirection.up || dir == ArrowDirection.down) {
+      return [ArrowDirection.left, ArrowDirection.right];
+    } else {
+      return [ArrowDirection.up, ArrowDirection.down];
+    }
   }
 
   static PuzzleBoard _buildDeterministicFallbackBoard(PuzzleGenerationConfig config) {
     final board = PuzzleBoard(width: config.width, height: config.height);
-    // Perimeter-facing arrows are unconditionally clear
+
+    // Place configured obstacles safely
+    for (int i = 0; i < config.obstacleCount; i++) {
+      board.obstacles.add(GridPosition(i + 1, config.height ~/ 2));
+    }
+
     int count = 0;
     for (int x = 0; x < config.width; x++) {
       if (count >= config.arrowCount) break;
-      board.addArrow(ArrowEntity(id: 'fb_top_$x', position: GridPosition(x, 0), direction: ArrowDirection.up));
-      count++;
-      if (count >= config.arrowCount) break;
-      board.addArrow(ArrowEntity(id: 'fb_bot_$x', position: GridPosition(x, config.height - 1), direction: ArrowDirection.down));
+      final head = GridPosition(x, 0);
+      final tail = GridPosition(x, 1);
+      if (board.isObstacleAt(head) || board.isObstacleAt(tail)) continue;
+      board.addArrow(
+        ArrowEntity(
+          id: 'fb_top_$x',
+          position: head,
+          direction: ArrowDirection.up,
+          pathPoints: [tail, head],
+        ),
+      );
       count++;
     }
+
+    for (int x = 0; x < config.width; x++) {
+      if (count >= config.arrowCount) break;
+      final head = GridPosition(x, config.height - 1);
+      final tail = GridPosition(x, config.height - 2);
+      if (board.isObstacleAt(head) || board.isObstacleAt(tail)) continue;
+      board.addArrow(
+        ArrowEntity(
+          id: 'fb_bot_$x',
+          position: head,
+          direction: ArrowDirection.down,
+          pathPoints: [tail, head],
+        ),
+      );
+      count++;
+    }
+
     return board;
   }
 }
