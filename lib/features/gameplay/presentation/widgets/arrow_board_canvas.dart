@@ -1,12 +1,13 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../domain/engine/raycast_collision_detector.dart';
 import '../../../../domain/models/arrow_direction.dart';
 import '../../../../domain/models/arrow_entity.dart';
 import '../../../../domain/models/puzzle_board.dart';
 import '../../../../domain/models/skin_model.dart';
 
-/// Active escape animation metadata
+/// Active escape flight animation metadata
 class _ActiveEscape {
   final ArrowEntity arrow;
   final AnimationController controller;
@@ -21,18 +22,20 @@ class _ActiveEscape {
   });
 }
 
-/// Active collision shake animation metadata
+/// Active collision shake & recoil animation metadata
 class _ActiveCollision {
   final ArrowEntity arrow;
+  final ArrowEntity? blockingArrow;
   final AnimationController controller;
 
   _ActiveCollision({
     required this.arrow,
+    this.blockingArrow,
     required this.controller,
   });
 }
 
-/// High-Performance Light-Mode Polyline Arrow Canvas with Fluid Escape & Bump Animations
+/// High-Performance Light-Mode Polyline Arrow Canvas with Fluid Flight & Collision Recoil
 class ArrowBoardCanvas extends StatefulWidget {
   final PuzzleBoard board;
   final ArrowSkin? skin;
@@ -58,47 +61,61 @@ class ArrowBoardCanvas extends StatefulWidget {
 class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProviderStateMixin {
   final Map<String, _ActiveEscape> _activeEscapes = {};
   final Map<String, _ActiveCollision> _activeCollisions = {};
+  final Map<String, ArrowEntity> _cachedArrows = {};
   Set<String> _previouslyKnownArrowIds = {};
 
   @override
   void initState() {
     super.initState();
+    _cacheArrows(widget.board.activeArrows);
     _previouslyKnownArrowIds = widget.board.activeArrows.map((a) => a.id).toSet();
+  }
+
+  void _cacheArrows(List<ArrowEntity> arrows) {
+    for (final a in arrows) {
+      _cachedArrows[a.id] = a;
+    }
   }
 
   @override
   void didUpdateWidget(covariant ArrowBoardCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _cacheArrows(widget.board.activeArrows);
 
-    // Detect arrows that were cleared/escaped to trigger the smooth escape flight
     final currentIds = widget.board.activeArrows.map((a) => a.id).toSet();
     final missingIds = _previouslyKnownArrowIds.difference(currentIds);
 
+    // Fallback: If an arrow was removed outside of tap (e.g. solver or external event)
     for (final escapedId in missingIds) {
-      final oldArrow = oldWidget.board.getArrowById(escapedId);
+      final oldArrow = _cachedArrows[escapedId];
       if (oldArrow != null && !_activeEscapes.containsKey(escapedId)) {
         _triggerEscapeAnimation(oldArrow);
       }
     }
     _previouslyKnownArrowIds = currentIds;
 
-    // Detect collision to trigger bump & shake recoil
+    // Trigger collision if updated externally
     if (widget.collidingArrowId != null &&
         widget.collidingArrowId != oldWidget.collidingArrowId) {
-      final arrow = widget.board.getArrowById(widget.collidingArrowId!);
-      if (arrow != null) {
-        _triggerCollisionAnimation(arrow);
+      final arrow = _cachedArrows[widget.collidingArrowId!];
+      if (arrow != null && !_activeCollisions.containsKey(arrow.id)) {
+        _triggerCollisionAnimation(arrow, null);
       }
     }
   }
 
   void _triggerEscapeAnimation(ArrowEntity arrow) {
+    // 🚀 Flight Animation: 460ms ease-in curve simulating aerodynamic acceleration
     final controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 380),
+      duration: const Duration(milliseconds: 460),
     );
 
-    final slideAnim = Tween<double>(begin: 0.0, end: widget.size * 1.15).animate(
+    controller.addListener(() {
+      if (mounted) setState(() {});
+    });
+
+    final slideAnim = Tween<double>(begin: 0.0, end: widget.size * 1.35).animate(
       CurvedAnimation(parent: controller, curve: Curves.easeInCubic),
     );
 
@@ -130,17 +147,21 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
     });
   }
 
-  void _triggerCollisionAnimation(ArrowEntity arrow) {
-    // If already colliding, reset
+  void _triggerCollisionAnimation(ArrowEntity arrow, ArrowEntity? blockingArrow) {
     _activeCollisions[arrow.id]?.controller.dispose();
 
     final controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 320),
     );
+
+    controller.addListener(() {
+      if (mounted) setState(() {});
+    });
 
     final collision = _ActiveCollision(
       arrow: arrow,
+      blockingArrow: blockingArrow,
       controller: controller,
     );
 
@@ -174,13 +195,12 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
     final cellH = widget.size / widget.board.height;
     final tapPos = details.localPosition;
 
-    // Check hit test across all active arrows' line segments
     ArrowEntity? tappedArrow;
     double closestDistance = double.infinity;
-    final maxTouchRadius = cellW * 0.65;
+    final maxTouchRadius = cellW * 0.75;
 
     for (final arrow in widget.board.activeArrows) {
-      // Don't register taps on arrows currently flying off
+      // Ignore taps on arrows currently flying off
       if (_activeEscapes.containsKey(arrow.id)) continue;
 
       final points = arrow.effectivePoints;
@@ -193,7 +213,6 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
           tappedArrow = arrow;
         }
 
-        // Also check distance to segment lines
         if (i < points.length - 1) {
           final nextP = points[i + 1];
           final nextCenter = Offset(nextP.x * cellW + cellW / 2, nextP.y * cellH + cellH / 2);
@@ -207,6 +226,16 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
     }
 
     if (tappedArrow != null) {
+      // Check clearance immediately
+      final collision = RaycastCollisionDetector.validatePath(widget.board, tappedArrow);
+      if (collision.isClear) {
+        // 🚀 FLIGHT ANIMATION TRIGGERED ON TOUCH!
+        _triggerEscapeAnimation(tappedArrow);
+      } else {
+        // 💥 BUMP & SHAKE RECOIL TRIGGERED ON TOUCH!
+        _triggerCollisionAnimation(tappedArrow, collision.blockingArrow);
+      }
+
       widget.onArrowTapped(tappedArrow.id);
     }
   }
@@ -223,29 +252,7 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    // Collect all active animation listenables
-    final List<Listenable> listenables = [
-      ..._activeEscapes.values.map((e) => e.controller),
-      ..._activeCollisions.values.map((c) => c.controller),
-    ];
-
-    Widget canvasWidget = CustomPaint(
-      size: Size(widget.size, widget.size),
-      painter: _PolylineBoardPainter(
-        board: widget.board,
-        skin: widget.skin ?? ArrowSkin.allSkins.first,
-        activeHintId: widget.activeHintId,
-        activeEscapes: _activeEscapes,
-        activeCollisions: _activeCollisions,
-      ),
-    );
-
-    if (listenables.isNotEmpty) {
-      canvasWidget = AnimatedBuilder(
-        animation: Listenable.merge(listenables),
-        builder: (context, _) => canvasWidget,
-      );
-    }
+    _cacheArrows(widget.board.activeArrows);
 
     return Container(
       width: widget.size,
@@ -266,7 +273,16 @@ class _ArrowBoardCanvasState extends State<ArrowBoardCanvas> with TickerProvider
         borderRadius: BorderRadius.circular(22),
         child: GestureDetector(
           onTapDown: _handleTapDown,
-          child: canvasWidget,
+          child: CustomPaint(
+            size: Size(widget.size, widget.size),
+            painter: _PolylineBoardPainter(
+              board: widget.board,
+              skin: widget.skin ?? ArrowSkin.allSkins.first,
+              activeHintId: widget.activeHintId,
+              activeEscapes: _activeEscapes,
+              activeCollisions: _activeCollisions,
+            ),
+          ),
         ),
       ),
     );
@@ -324,13 +340,13 @@ class _PolylineBoardPainter extends CustomPainter {
       canvas.drawRRect(rrect, obsBorder);
     }
 
-    // 3. Draw Active Arrows
+    // 3. Draw Active Resting Arrows
     for (final arrow in board.activeArrows) {
-      if (activeEscapes.containsKey(arrow.id)) continue; // Handled by escaping layer
+      if (activeEscapes.containsKey(arrow.id)) continue;
       _drawArrow(canvas, arrow, cellW, cellH);
     }
 
-    // 4. Draw Escaping Arrows (Smooth Slide Off Canvas)
+    // 4. Draw Flying/Escaping Arrows (Smooth Flight Off Board)
     for (final escape in activeEscapes.values) {
       _drawEscapingArrow(canvas, escape, cellW, cellH);
     }
@@ -340,27 +356,39 @@ class _PolylineBoardPainter extends CustomPainter {
     final isHinted = arrow.id == activeHintId;
     final collision = activeCollisions[arrow.id];
 
+    // Check if this arrow is being blocked into by another arrow
+    bool isBlockingTarget = false;
+    for (final c in activeCollisions.values) {
+      if (c.blockingArrow?.id == arrow.id) {
+        isBlockingTarget = true;
+        break;
+      }
+    }
+
     Offset translationOffset = Offset.zero;
     Color strokeColor = skin.primaryColor;
 
     if (skin.id == 'classic_obsidian') {
-      strokeColor = AppColors.arrowDefaultStroke; // Crisp dark slate from screenshot
+      strokeColor = AppColors.arrowDefaultStroke;
     }
 
     if (isHinted) {
       strokeColor = AppColors.accentGold;
     } else if (collision != null) {
       final progress = collision.controller.value;
-      // Bump forward then recoil with red flash
-      final bumpDistance = cellW * 0.22;
+      // Bump forward towards obstacle then spring recoil
+      final bumpDistance = cellW * 0.32;
       final bump = math.sin(progress * math.pi) * bumpDistance;
-      final shake = math.sin(progress * math.pi * 6) * 3.0 * (1.0 - progress);
+      final shake = math.sin(progress * math.pi * 8) * 3.5 * (1.0 - progress);
 
       translationOffset = Offset(
         arrow.direction.dx * bump + (arrow.direction.dx == 0 ? shake : 0),
         arrow.direction.dy * bump + (arrow.direction.dy == 0 ? shake : 0),
       );
       strokeColor = Color.lerp(AppColors.accentWarning, strokeColor, progress)!;
+    } else if (isBlockingTarget) {
+      // Subtle obstacle flash
+      strokeColor = Color.lerp(strokeColor, AppColors.accentWarning, 0.5)!;
     }
 
     _renderPolylineArrow(
@@ -372,6 +400,7 @@ class _PolylineBoardPainter extends CustomPainter {
       translation: translationOffset,
       opacity: 1.0,
       isHinted: isHinted,
+      isFlying: false,
     );
   }
 
@@ -390,6 +419,20 @@ class _PolylineBoardPainter extends CustomPainter {
       strokeColor = AppColors.arrowDefaultStroke;
     }
 
+    // Draw aerodynamic speed stream trail behind the flying arrow
+    if (slideDist > 10) {
+      final trailPaint = Paint()
+        ..color = strokeColor.withValues(alpha: 0.15 * opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = (cellW * 0.16) * 1.5
+        ..strokeCap = StrokeCap.round;
+
+      final p = arrow.effectivePoints.first;
+      final start = Offset(p.x * cellW + cellW / 2, p.y * cellH + cellH / 2) + translation;
+      final back = start - Offset(arrow.direction.dx * (slideDist * 0.4), arrow.direction.dy * (slideDist * 0.4));
+      canvas.drawLine(back, start, trailPaint);
+    }
+
     _renderPolylineArrow(
       canvas: canvas,
       arrow: arrow,
@@ -399,6 +442,7 @@ class _PolylineBoardPainter extends CustomPainter {
       translation: translation,
       opacity: opacity,
       isHinted: false,
+      isFlying: true,
     );
   }
 
@@ -411,11 +455,12 @@ class _PolylineBoardPainter extends CustomPainter {
     required Offset translation,
     required double opacity,
     required bool isHinted,
+    required bool isFlying,
   }) {
     final points = arrow.effectivePoints;
     if (points.isEmpty) return;
 
-    final strokeWidth = (cellW * 0.16).clamp(4.0, 7.5);
+    final strokeWidth = (cellW * 0.16).clamp(4.5, 8.0);
     final effectiveColor = color.withValues(alpha: opacity);
 
     final linePaint = Paint()
@@ -436,8 +481,17 @@ class _PolylineBoardPainter extends CustomPainter {
       }
     }
 
-    // Optional hint glow
-    if (isHinted) {
+    // Flying / Hint glow
+    if (isFlying) {
+      final flyGlow = Paint()
+        ..color = effectiveColor.withValues(alpha: 0.35 * opacity)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth + 4.0
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+      canvas.drawPath(path, flyGlow);
+    } else if (isHinted) {
       final glowPaint = Paint()
         ..color = AppColors.accentGold.withValues(alpha: 0.5 * opacity)
         ..style = PaintingStyle.stroke
@@ -463,7 +517,7 @@ class _PolylineBoardPainter extends CustomPainter {
       center: headCenter,
       direction: arrow.direction,
       color: effectiveColor,
-      size: strokeWidth * 2.4,
+      size: strokeWidth * 2.5,
       strokeWidth: strokeWidth,
     );
   }
@@ -491,7 +545,6 @@ class _PolylineBoardPainter extends CustomPainter {
     final wingAngle = math.pi * 0.76;
 
     final path = Path();
-    // Tip is at Offset(size * 0.45, 0)
     final tip = Offset(size * 0.45, 0);
     final leftWing = tip + Offset(math.cos(wingAngle) * wingLen, math.sin(wingAngle) * wingLen);
     final rightWing = tip + Offset(math.cos(-wingAngle) * wingLen, math.sin(-wingAngle) * wingLen);
@@ -506,6 +559,6 @@ class _PolylineBoardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _PolylineBoardPainter oldDelegate) {
-    return true; // Continuously animates during flight/recoil
+    return true; // Repaints dynamically across animation frames
   }
 }
