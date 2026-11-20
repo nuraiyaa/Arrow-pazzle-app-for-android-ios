@@ -155,10 +155,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Widget _buildNavRow(String title, VoidCallback onTap) {
-    return ListTile(
-      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-      trailing: const NeoIcon(type: NeoIconType.chevronRight, size: 16, color: AppColors.textSecondary),
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        trailing: const NeoIcon(type: NeoIconType.chevronRight, size: 16, color: AppColors.textSecondary),
+        onTap: onTap,
+      ),
     );
   }
 }

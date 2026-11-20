@@ -19,6 +19,12 @@ void main() async {
     ),
   );
 
+  // Lock orientation to portrait for optimal mobile puzzle ergonomics
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   // Initialize AdManager in background
   unawaited(AdManager.instance.initialize());
 
