@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/ads/neo_banner_ad_widget.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../data/providers/progress_provider.dart';
@@ -46,149 +47,210 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
 
-              const Spacer(flex: 2),
+              // Scrollable Responsive Middle Section
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 10),
+                        // 2. Hero Branding Section
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 84,
+                                height: 84,
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceCardElevated,
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: AppColors.brandPrimary.withValues(alpha: 0.5),
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.brandPrimary.withValues(alpha: 0.3),
+                                      blurRadius: 24,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: NeoIcon(
+                                    type: NeoIconType.arrowUp,
+                                    size: 44,
+                                    color: AppColors.brandPrimary,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                AppStrings.appTitle.toUpperCase(),
+                                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                                      letterSpacing: 2,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                AppStrings.tagline,
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: AppColors.accentCyan,
+                                      letterSpacing: 1.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-              // 2. Hero Branding Section
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 84,
-                      height: 84,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCardElevated,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: AppColors.brandPrimary.withValues(alpha: 0.5),
-                          width: 1.5,
+                        const SizedBox(height: 24),
+
+                        // 3. Play Cards Grid / Quick Actions
+                        Row(
+                          children: [
+                            // Continue Level Card
+                            Expanded(
+                              flex: 3,
+                              child: NeoCard(
+                                hasGlow: true,
+                                padding: const EdgeInsets.all(18),
+                                onTap: () => context.push('/gameplay?level=$unlockedLevel'),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.brandPrimary.withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'STAGE $unlockedLevel',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.brandPrimary,
+                                            ),
+                                          ),
+                                        ),
+                                        const NeoIcon(
+                                          type: NeoIconType.play,
+                                          size: 20,
+                                          color: AppColors.brandPrimary,
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      AppStrings.play,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    const Text(
+                                      'Continue journey',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+
+                            // Modes Selector Card
+                            Expanded(
+                              flex: 2,
+                              child: NeoCard(
+                                padding: const EdgeInsets.all(18),
+                                onTap: () => context.push('/modes'),
+                                child: const Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    NeoIcon(
+                                      type: NeoIconType.trophy,
+                                      size: 22,
+                                      color: AppColors.accentGold,
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'MODES',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    SizedBox(height: 2),
+                                    Text(
+                                      '3 Variations',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.brandPrimary.withValues(alpha: 0.3),
-                            blurRadius: 24,
-                            offset: const Offset(0, 8),
+
+                        const SizedBox(height: 14),
+
+                        // 4. Daily Rewards & Streak Card
+                        NeoCard(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            children: [
+                              const NeoIcon(type: NeoIconType.gift, size: 28, color: AppColors.accentGold),
+                              const SizedBox(width: 14),
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Daily Reward Active', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                                    SizedBox(height: 2),
+                                    Text('+50 Coins ready', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                                  ],
+                                ),
+                              ),
+                              NeoButton(
+                                text: 'CLAIM',
+                                height: 36,
+                                variant: NeoButtonVariant.rewarded,
+                                onPressed: () {
+                                  ref.read(progressNotifierProvider.notifier).addCoins(50);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Claimed 50 Daily Coins!')),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: NeoIcon(
-                          type: NeoIconType.arrowUp,
-                          size: 44,
-                          color: AppColors.brandPrimary,
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      AppStrings.appTitle.toUpperCase(),
-                      style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                            letterSpacing: 2,
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppStrings.tagline,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.accentCyan,
-                            letterSpacing: 1.5,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
 
-              const Spacer(flex: 2),
-
-              // 3. Primary Action Area (PLAY & Modes)
-              NeoButton(
-                text: AppStrings.play,
-                subtext: 'Stage $unlockedLevel • Relaxed',
-                icon: NeoIconType.play,
-                height: 64,
-                width: double.infinity,
-                onPressed: () => context.push('/gameplay?mode=relaxed&level=$unlockedLevel'),
-              ),
-              const SizedBox(height: 14),
-
-              Row(
-                children: [
-                  Expanded(
-                    child: NeoCard(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      onTap: () => context.push('/gameplay?mode=challenge&level=1'),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          NeoIcon(type: NeoIconType.trophy, size: 24, color: AppColors.accentPurple),
-                          SizedBox(height: 10),
-                          Text('Challenge', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          SizedBox(height: 2),
-                          Text('7x7 Obstacles', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: NeoCard(
-                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      onTap: () => context.push('/gameplay?mode=timed&level=1'),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          NeoIcon(type: NeoIconType.stopwatch, size: 24, color: AppColors.accentCyan),
-                          SizedBox(height: 10),
-                          Text('Timed Rush', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                          SizedBox(height: 2),
-                          Text('60s Blitz', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 14),
-
-              // 4. Daily Rewards & Streak Card
-              NeoCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    const NeoIcon(type: NeoIconType.gift, size: 28, color: AppColors.accentGold),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Daily Reward Active', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                          SizedBox(height: 2),
-                          Text('+50 Coins ready', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
-                    NeoButton(
-                      text: 'CLAIM',
-                      height: 36,
-                      variant: NeoButtonVariant.rewarded,
-                      onPressed: () {
-                        ref.read(progressNotifierProvider.notifier).addCoins(50);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Claimed 50 Daily Coins!')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(flex: 1),
+              const SizedBox(height: 10),
 
               // 5. Bottom Navigation Dock
               Container(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceCard,
@@ -216,6 +278,12 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
+              ),
+
+              // 6. AdMob Banner (Non-intrusive bottom placement)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 6),
+                child: NeoBannerAdWidget(),
               ),
             ],
           ),

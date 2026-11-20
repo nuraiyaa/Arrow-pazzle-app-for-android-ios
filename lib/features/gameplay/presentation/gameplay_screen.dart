@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../data/providers/ad_provider.dart';
 import '../../../data/providers/progress_provider.dart';
 import '../../../domain/engine/game_session.dart';
 import '../../../domain/engine/reverse_puzzle_generator.dart';
@@ -451,9 +452,18 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
                 subtext: '+100 Coins (Watch Short Video)',
                 variant: NeoButtonVariant.rewarded,
                 width: double.infinity,
-                onPressed: () {
-                  ref.read(progressNotifierProvider.notifier).addCoins(100);
-                  ctx.pop();
+                onPressed: () async {
+                  final adManager = ref.read(adManagerProvider);
+                  await adManager.showRewardedAd(
+                    onRewardEarned: (reward) {
+                      ref.read(progressNotifierProvider.notifier).addCoins(100);
+                    },
+                    onFailed: () {
+                      // Graceful fallback for offline / test
+                      ref.read(progressNotifierProvider.notifier).addCoins(50);
+                    },
+                  );
+                  if (ctx.mounted) ctx.pop();
                   _advanceNextLevel();
                 },
               ),
@@ -474,6 +484,20 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
   }
 
   void _advanceNextLevel() {
+    final adManager = ref.read(adManagerProvider);
+    adManager.recordLevelCompleted();
+
+    if (adManager.canShowInterstitial()) {
+      adManager.showInterstitialAd(
+        onDismissed: () => _navigateToNextLevel(),
+      );
+    } else {
+      _navigateToNextLevel();
+    }
+  }
+
+  void _navigateToNextLevel() {
+    if (!mounted) return;
     if (widget.mode == GameModeType.timed) {
       _startNewGame();
     } else {
@@ -513,15 +537,30 @@ class _GameplayScreenState extends ConsumerState<GameplayScreen> {
                 text: isTimeOut ? 'WATCH AD (+15s TIME)' : 'WATCH AD (+1 LIFE)',
                 variant: NeoButtonVariant.primary,
                 width: double.infinity,
-                onPressed: () {
-                  ctx.pop();
-                  setState(() {
-                    if (isTimeOut) {
-                      _session.remainingTimeSeconds = 15;
-                    } else {
-                      _session.hearts = 1;
-                    }
-                  });
+                onPressed: () async {
+                  final adManager = ref.read(adManagerProvider);
+                  await adManager.showRewardedAd(
+                    onRewardEarned: (reward) {
+                      if (ctx.mounted) ctx.pop();
+                      setState(() {
+                        if (isTimeOut) {
+                          _session.remainingTimeSeconds = 15;
+                        } else {
+                          _session.hearts = 1;
+                        }
+                      });
+                    },
+                    onFailed: () {
+                      if (ctx.mounted) ctx.pop();
+                      setState(() {
+                        if (isTimeOut) {
+                          _session.remainingTimeSeconds = 15;
+                        } else {
+                          _session.hearts = 1;
+                        }
+                      });
+                    },
+                  );
                 },
               ),
               const SizedBox(height: 12),

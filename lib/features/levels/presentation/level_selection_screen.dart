@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/ads/neo_banner_ad_widget.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../data/providers/progress_provider.dart';
 import '../../../shared/widgets/neo_badge.dart';
@@ -167,6 +168,9 @@ class LevelSelectionScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 6),
+          const NeoBannerAdWidget(),
+          const SizedBox(height: 8),
         ],
       ),
     );
