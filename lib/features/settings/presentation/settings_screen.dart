@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/providers/backend_provider.dart';
 import '../../../data/providers/progress_provider.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
@@ -87,18 +88,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 const NeoIcon(type: NeoIconType.checkmark, size: 22, color: AppColors.accentSecondary),
                 const SizedBox(width: 14),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Cloud Progress Sync', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
-                      SizedBox(height: 2),
-                      Text('Connected as Player_8492', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      const Text('Cloud Progress Sync', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Connected as ${ref.watch(playerProfileProvider).displayName}',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
                     ],
                   ),
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    await ref.read(playerProfileProvider.notifier).syncWithCloud();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cloud Progress Synchronized Successfully!')),
+                      );
+                    }
+                  },
                   child: const Text('Sync Now', style: TextStyle(color: AppColors.brandPrimary, fontWeight: FontWeight.w700)),
                 ),
               ],
