@@ -1,24 +1,39 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../data/providers/progress_provider.dart';
 import '../../../domain/engine/game_session.dart';
 import '../../../domain/engine/reverse_puzzle_generator.dart';
+import '../../../domain/models/game_mode.dart';
+import '../../../domain/models/level_model.dart';
 import '../../../shared/widgets/neo_badge.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
 import '../../../shared/widgets/neo_icon.dart';
 import 'widgets/arrow_board_canvas.dart';
 
-class GameplayScreen extends StatefulWidget {
-  const GameplayScreen({super.key});
+class GameplayScreen extends ConsumerStatefulWidget {
+  final GameModeType mode;
+  final int levelNumber;
+  final DifficultyTier difficulty;
+
+  const GameplayScreen({
+    super.key,
+    this.mode = GameModeType.relaxed,
+    this.levelNumber = 1,
+    this.difficulty = DifficultyTier.hard,
+  });
 
   @override
-  State<GameplayScreen> createState() => _GameplayScreenState();
+  ConsumerState<GameplayScreen> createState() => _GameplayScreenState();
 }
 
-class _GameplayScreenState extends State<GameplayScreen> {
+class _GameplayScreenState extends ConsumerState<GameplayScreen> {
   late GameSession _session;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -26,23 +41,71 @@ class _GameplayScreenState extends State<GameplayScreen> {
     _startNewGame();
   }
 
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
   void _startNewGame() {
-    // Generate a guaranteed 100% solvable puzzle
-    final board = ReversePuzzleGenerator.generate(
-      const PuzzleGenerationConfig(width: 6, height: 6, arrowCount: 20),
+    _timer?.cancel();
+
+    final config = LevelConfig.forLevel(
+      levelNumber: widget.levelNumber,
+      mode: widget.mode,
+      difficulty: widget.difficulty,
     );
-    _session = GameSession(board: board);
+
+    final genConfig = PuzzleGenerationConfig(
+      width: config.gridWidth,
+      height: config.gridHeight,
+      arrowCount: config.arrowCount,
+      obstacleCount: config.obstacleCount,
+      seed: config.levelNumber * 100 + config.mode.index * 10 + config.difficulty.index,
+    );
+
+    final board = ReversePuzzleGenerator.generate(genConfig);
+    _session = GameSession(board: board, config: config);
+
+    // If Timed Mode, start periodic ticker
+    if (_session.isTimedMode) {
+      _timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+        if (!mounted) return;
+        setState(() {
+          final justEnded = _session.tick(0.1);
+          if (justEnded) {
+            timer.cancel();
+            _showDefeatDialog(isTimeOut: true);
+          }
+        });
+      });
+    }
   }
 
   void _onArrowTapped(String arrowId) {
     setState(() {
       final result = _session.tapArrow(arrowId);
       if (result.outcome == TapOutcome.levelWon) {
-        _showVictoryDialog();
+        _timer?.cancel();
+        _onVictory();
       } else if (result.outcome == TapOutcome.outOfHearts) {
-        _showDefeatDialog();
+        _timer?.cancel();
+        _showDefeatDialog(isTimeOut: false);
+      } else if (result.outcome == TapOutcome.outOfTime) {
+        _timer?.cancel();
+        _showDefeatDialog(isTimeOut: true);
       }
     });
+  }
+
+  void _onVictory() {
+    final stars = _session.calculateStars();
+    if (widget.mode == GameModeType.timed) {
+      ref.read(progressNotifierProvider.notifier).saveTimedScore(_session.score);
+    } else {
+      ref.read(progressNotifierProvider.notifier).completeLevel(widget.levelNumber, stars);
+    }
+    _showVictoryDialog(stars);
   }
 
   void _onHintRequested() {
@@ -65,6 +128,8 @@ class _GameplayScreenState extends State<GameplayScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final coins = ref.watch(progressNotifierProvider.notifier).coins;
+
     return Scaffold(
       backgroundColor: AppColors.surfaceBackground,
       body: SafeArea(
@@ -79,7 +144,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 children: [
                   NeoButton.icon(
                     icon: NeoIconType.pause,
-                    onPressed: () => _showPauseDialog(),
+                    onPressed: _showPauseDialog,
                     height: 42,
                     width: 42,
                   ),
@@ -88,54 +153,112 @@ class _GameplayScreenState extends State<GameplayScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.brandPrimary.withValues(alpha: 0.15),
+                          color: _getModeColor().withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.brandPrimary.withValues(alpha: 0.4)),
+                          border: Border.all(color: _getModeColor().withValues(alpha: 0.4)),
                         ),
                         child: Text(
-                          'STAGE 42 (${_session.board.remainingCount} LEFT)',
-                          style: const TextStyle(
+                          _getModeHeader(),
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1,
-                            color: AppColors.brandPrimary,
+                            color: _getModeColor(),
                           ),
                         ),
                       ),
                       const SizedBox(height: 2),
-                      const Text(
-                        'RELAXED MODE',
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                      Text(
+                        '${widget.mode.displayName.toUpperCase()} • ${_session.board.remainingCount} LEFT',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                       ),
                     ],
                   ),
                   Row(
                     children: [
-                      NeoBadge.hearts(_session.hearts, maxHearts: _session.maxHearts),
-                      const SizedBox(width: 8),
-                      NeoBadge.coins(2450),
+                      if (!_session.isTimedMode) ...[
+                        NeoBadge.hearts(_session.hearts, maxHearts: _session.maxHearts),
+                        const SizedBox(width: 8),
+                      ],
+                      NeoBadge.coins(coins),
                     ],
                   ),
                 ],
               ),
             ),
 
+            // Timed Mode Header: Countdown Bar & Score
+            if (_session.isTimedMode) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            const NeoIcon(type: NeoIconType.stopwatch, size: 16, color: AppColors.accentCyan),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${_session.remainingTimeSeconds.toStringAsFixed(1)}s',
+                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.accentCyan),
+                            ),
+                          ],
+                        ),
+                        if (_session.comboStreak > 1)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.accentGold),
+                            ),
+                            child: Text(
+                              '${_session.comboStreak}x COMBO',
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.accentGold),
+                            ),
+                          ),
+                        Text(
+                          'Score: ${_session.score}',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (_session.remainingTimeSeconds / 60.0).clamp(0.0, 1.0),
+                        backgroundColor: AppColors.surfaceCardElevated,
+                        valueColor: AlwaysStoppedAnimation(
+                          _session.remainingTimeSeconds < 10 ? AppColors.accentWarning : AppColors.accentCyan,
+                        ),
+                        minHeight: 6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const Spacer(),
 
-            // CustomPainter Interactive Arrow Board Canvas
+            // CustomPainter Arrow Board Canvas
             Center(
               child: ArrowBoardCanvas(
                 board: _session.board,
                 activeHintId: _session.activeHintArrowId,
                 collidingArrowId: _session.lastCollidingArrowId,
                 onArrowTapped: _onArrowTapped,
-                size: 330,
+                size: widget.mode == GameModeType.challenge ? 340 : 320,
               ),
             ),
 
             const Spacer(),
 
-            // Tactical Control Bar
+            // Tactical Action Controls Dock
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
@@ -163,9 +286,9 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Non-intrusive Banner Placement
+            // Reserved AdMob Banner Dock
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 20),
               height: 50,
@@ -191,6 +314,28 @@ class _GameplayScreenState extends State<GameplayScreen> {
         ),
       ),
     );
+  }
+
+  Color _getModeColor() {
+    switch (widget.mode) {
+      case GameModeType.relaxed:
+        return AppColors.brandPrimary;
+      case GameModeType.challenge:
+        return AppColors.accentPurple;
+      case GameModeType.timed:
+        return AppColors.accentCyan;
+    }
+  }
+
+  String _getModeHeader() {
+    switch (widget.mode) {
+      case GameModeType.relaxed:
+        return 'STAGE ${widget.levelNumber}';
+      case GameModeType.challenge:
+        return 'CHALLENGE #${widget.levelNumber}';
+      case GameModeType.timed:
+        return 'TIMED RUSH';
+    }
   }
 
   Widget _buildToolButton({
@@ -245,7 +390,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
     );
   }
 
-  void _showVictoryDialog() {
+  void _showVictoryDialog(int stars) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -257,14 +402,14 @@ class _GameplayScreenState extends State<GameplayScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  NeoIcon(type: NeoIconType.star, size: 32, color: AppColors.accentGold),
-                  SizedBox(width: 8),
-                  NeoIcon(type: NeoIconType.star, size: 40, color: AppColors.accentGold),
-                  SizedBox(width: 8),
-                  NeoIcon(type: NeoIconType.star, size: 32, color: AppColors.accentGold),
+                  NeoIcon(type: NeoIconType.star, size: 30, color: stars >= 1 ? AppColors.accentGold : AppColors.textMuted),
+                  const SizedBox(width: 8),
+                  NeoIcon(type: NeoIconType.star, size: 40, color: stars >= 2 ? AppColors.accentGold : AppColors.textMuted),
+                  const SizedBox(width: 8),
+                  NeoIcon(type: NeoIconType.star, size: 30, color: stars >= 3 ? AppColors.accentGold : AppColors.textMuted),
                 ],
               ),
               const SizedBox(height: 16),
@@ -274,18 +419,21 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                'Solved in ${_session.movesCount} Moves! Accuracy: 100%',
+                widget.mode == GameModeType.timed
+                    ? 'Final Score: ${_session.score} Points!'
+                    : 'Solved in ${_session.movesCount} Moves! Accuracy: 100%',
                 style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
               const SizedBox(height: 24),
               NeoButton(
                 text: AppStrings.claimDouble,
-                subtext: '+240 Coins (Watch Short Video)',
+                subtext: '+100 Coins (Watch Short Video)',
                 variant: NeoButtonVariant.rewarded,
                 width: double.infinity,
                 onPressed: () {
+                  ref.read(progressNotifierProvider.notifier).addCoins(100);
                   ctx.pop();
-                  _onRestart();
+                  _advanceNextLevel();
                 },
               ),
               const SizedBox(height: 12),
@@ -294,7 +442,7 @@ class _GameplayScreenState extends State<GameplayScreen> {
                 width: double.infinity,
                 onPressed: () {
                   ctx.pop();
-                  _onRestart();
+                  _advanceNextLevel();
                 },
               ),
             ],
@@ -304,7 +452,15 @@ class _GameplayScreenState extends State<GameplayScreen> {
     );
   }
 
-  void _showDefeatDialog() {
+  void _advanceNextLevel() {
+    if (widget.mode == GameModeType.timed) {
+      _startNewGame();
+    } else {
+      context.go('/gameplay?mode=${widget.mode.name}&level=${widget.levelNumber + 1}&diff=${widget.difficulty.name}');
+    }
+  }
+
+  void _showDefeatDialog({required bool isTimeOut}) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -316,11 +472,15 @@ class _GameplayScreenState extends State<GameplayScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const NeoIcon(type: NeoIconType.heart, size: 48, color: AppColors.accentWarning),
+              NeoIcon(
+                type: isTimeOut ? NeoIconType.stopwatch : NeoIconType.heart,
+                size: 48,
+                color: AppColors.accentWarning,
+              ),
               const SizedBox(height: 16),
-              const Text(
-                AppStrings.outOfMoves,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.accentWarning),
+              Text(
+                isTimeOut ? 'Time Ran Out!' : AppStrings.outOfMoves,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.accentWarning),
               ),
               const SizedBox(height: 8),
               Text(
@@ -329,19 +489,23 @@ class _GameplayScreenState extends State<GameplayScreen> {
               ),
               const SizedBox(height: 24),
               NeoButton(
-                text: 'WATCH AD (+1 LIFE)',
+                text: isTimeOut ? 'WATCH AD (+15s TIME)' : 'WATCH AD (+1 LIFE)',
                 variant: NeoButtonVariant.primary,
                 width: double.infinity,
                 onPressed: () {
                   ctx.pop();
                   setState(() {
-                    _session.hearts = 1;
+                    if (isTimeOut) {
+                      _session.remainingTimeSeconds = 15;
+                    } else {
+                      _session.hearts = 1;
+                    }
                   });
                 },
               ),
               const SizedBox(height: 12),
               NeoButton(
-                text: 'RESTART STAGE',
+                text: 'RESTART',
                 variant: NeoButtonVariant.secondary,
                 width: double.infinity,
                 onPressed: () {

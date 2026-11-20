@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../data/providers/progress_provider.dart';
 import '../../../shared/widgets/neo_badge.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_card.dart';
 import '../../../shared/widgets/neo_icon.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unlockedLevel = ref.watch(progressNotifierProvider);
+    final coins = ref.watch(progressNotifierProvider.notifier).coins;
+
     return Scaffold(
       backgroundColor: AppColors.surfaceBackground,
       body: SafeArea(
@@ -27,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                   NeoBadge.level(14),
                   Row(
                     children: [
-                      NeoBadge.coins(2450),
+                      NeoBadge.coins(coins),
                       const SizedBox(width: 8),
                       NeoBadge.hearts(3),
                     ],
@@ -54,12 +59,12 @@ class HomeScreen extends StatelessWidget {
                         color: AppColors.surfaceCardElevated,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: AppColors.brandPrimary.withOpacity(0.5),
+                          color: AppColors.brandPrimary.withValues(alpha: 0.5),
                           width: 1.5,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.brandPrimary.withOpacity(0.3),
+                            color: AppColors.brandPrimary.withValues(alpha: 0.3),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -99,11 +104,11 @@ class HomeScreen extends StatelessWidget {
               // 3. Primary Action Area (PLAY & Modes)
               NeoButton(
                 text: AppStrings.play,
-                subtext: 'Stage 42 • Relaxed',
+                subtext: 'Stage $unlockedLevel • Relaxed',
                 icon: NeoIconType.play,
                 height: 64,
                 width: double.infinity,
-                onPressed: () => context.push('/gameplay'),
+                onPressed: () => context.push('/gameplay?mode=relaxed&level=$unlockedLevel'),
               ),
               const SizedBox(height: 14),
 
@@ -112,7 +117,7 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: NeoCard(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      onTap: () => context.push('/modes'),
+                      onTap: () => context.push('/gameplay?mode=challenge&level=1'),
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -120,7 +125,7 @@ class HomeScreen extends StatelessWidget {
                           SizedBox(height: 10),
                           Text('Challenge', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                           SizedBox(height: 2),
-                          Text('5 Hard Puzzles', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          Text('7x7 Obstacles', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
                       ),
                     ),
@@ -129,7 +134,7 @@ class HomeScreen extends StatelessWidget {
                   Expanded(
                     child: NeoCard(
                       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-                      onTap: () => context.push('/modes'),
+                      onTap: () => context.push('/gameplay?mode=timed&level=1'),
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -158,7 +163,7 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Day 3/7 Streak', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                          Text('Daily Reward Active', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
                           SizedBox(height: 2),
                           Text('+50 Coins ready', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                         ],
@@ -168,7 +173,12 @@ class HomeScreen extends StatelessWidget {
                       text: 'CLAIM',
                       height: 36,
                       variant: NeoButtonVariant.rewarded,
-                      onPressed: () {},
+                      onPressed: () {
+                        ref.read(progressNotifierProvider.notifier).addCoins(50);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Claimed 50 Daily Coins!')),
+                        );
+                      },
                     ),
                   ],
                 ),

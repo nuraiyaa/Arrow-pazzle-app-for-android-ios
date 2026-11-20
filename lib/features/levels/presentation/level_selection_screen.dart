@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../data/providers/progress_provider.dart';
 import '../../../shared/widgets/neo_badge.dart';
 import '../../../shared/widgets/neo_button.dart';
 import '../../../shared/widgets/neo_icon.dart';
 
-class LevelSelectionScreen extends StatelessWidget {
+class LevelSelectionScreen extends ConsumerWidget {
   const LevelSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unlockedLevel = ref.watch(progressNotifierProvider);
+    final totalStars = ref.watch(progressNotifierProvider.notifier).totalStars;
+
     return Scaffold(
       backgroundColor: AppColors.surfaceBackground,
       appBar: AppBar(
@@ -21,8 +26,8 @@ class LevelSelectionScreen extends StatelessWidget {
         ),
         title: const Column(
           children: [
-            Text('CHAPTER 2: NEON LABYRINTH', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-            Text('Stages 31 - 60', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            Text('CHAPTER 1 & 2', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+            Text('Stages 1 - 40', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
           ],
         ),
         centerTitle: true,
@@ -30,7 +35,7 @@ class LevelSelectionScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: NeoBadge(
-              text: '84/90',
+              text: '$totalStars ★',
               icon: NeoIconType.star,
               iconColor: AppColors.accentGold,
               backgroundColor: AppColors.surfaceCard,
@@ -49,24 +54,27 @@ class LevelSelectionScreen extends StatelessWidget {
                 crossAxisSpacing: 14,
                 childAspectRatio: 0.9,
               ),
-              itemCount: 28, // Stages 31 to 58
+              itemCount: 40, // Stages 1 to 40
               itemBuilder: (context, index) {
-                final stageNum = 31 + index;
-                final isCompleted = stageNum < 42;
-                final isActive = stageNum == 42;
-                final isLocked = stageNum > 42;
+                final stageNum = 1 + index;
+                final isCompleted = stageNum < unlockedLevel;
+                final isActive = stageNum == unlockedLevel;
+                final isLocked = stageNum > unlockedLevel;
+                final stars = ref.watch(progressNotifierProvider.notifier).getStars(stageNum);
 
                 return GestureDetector(
                   onTap: () {
-                    if (!isLocked) context.push('/gameplay');
+                    if (!isLocked) {
+                      context.push('/gameplay?mode=relaxed&level=$stageNum');
+                    }
                   },
                   child: Container(
                     decoration: BoxDecoration(
                       color: isActive
-                          ? AppColors.brandPrimary.withOpacity(0.2)
+                          ? AppColors.brandPrimary.withValues(alpha: 0.2)
                           : isCompleted
                               ? AppColors.surfaceCardElevated
-                              : AppColors.surfaceCard.withOpacity(0.4),
+                              : AppColors.surfaceCard.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
                         color: isActive
@@ -79,7 +87,7 @@ class LevelSelectionScreen extends StatelessWidget {
                       boxShadow: isActive
                           ? [
                               BoxShadow(
-                                color: AppColors.brandPrimary.withOpacity(0.4),
+                                color: AppColors.brandPrimary.withValues(alpha: 0.4),
                                 blurRadius: 12,
                               ),
                             ]
@@ -101,14 +109,14 @@ class LevelSelectionScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           if (isCompleted)
-                            const Row(
+                            Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                NeoIcon(type: NeoIconType.star, size: 8, color: AppColors.accentGold),
-                                SizedBox(width: 2),
-                                NeoIcon(type: NeoIconType.star, size: 8, color: AppColors.accentGold),
-                                SizedBox(width: 2),
-                                NeoIcon(type: NeoIconType.star, size: 8, color: AppColors.accentGold),
+                                NeoIcon(type: NeoIconType.star, size: 8, color: stars >= 1 ? AppColors.accentGold : AppColors.textMuted),
+                                const SizedBox(width: 2),
+                                NeoIcon(type: NeoIconType.star, size: 8, color: stars >= 2 ? AppColors.accentGold : AppColors.textMuted),
+                                const SizedBox(width: 2),
+                                NeoIcon(type: NeoIconType.star, size: 8, color: stars >= 3 ? AppColors.accentGold : AppColors.textMuted),
                               ],
                             )
                           else if (isActive)
@@ -141,12 +149,12 @@ class LevelSelectionScreen extends StatelessWidget {
               children: [
                 const NeoIcon(type: NeoIconType.gift, size: 28, color: AppColors.accentGold),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Chapter Star Chest', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                      Text('6 more stars to unlock 500 Coins', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      const Text('Chapter Star Chest', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                      Text('$totalStars / 60 Stars collected', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -154,7 +162,7 @@ class LevelSelectionScreen extends StatelessWidget {
                   text: 'CLAIM',
                   height: 36,
                   variant: NeoButtonVariant.secondary,
-                  onPressed: null, // Locked
+                  onPressed: totalStars >= 60 ? () {} : null,
                 ),
               ],
             ),

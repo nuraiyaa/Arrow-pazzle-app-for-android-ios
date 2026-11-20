@@ -7,6 +7,7 @@ import 'package:arrow_puzzle_game/domain/engine/raycast_collision_detector.dart'
 import 'package:arrow_puzzle_game/domain/engine/puzzle_solver.dart';
 import 'package:arrow_puzzle_game/domain/engine/reverse_puzzle_generator.dart';
 import 'package:arrow_puzzle_game/domain/engine/game_session.dart';
+import 'package:arrow_puzzle_game/domain/models/level_model.dart';
 
 void main() {
   group('Core Engine - ArrowDirection & GridPosition Tests', () {
@@ -143,7 +144,11 @@ void main() {
       board.addArrow(arrow1);
       board.addArrow(arrow2);
 
-      final session = GameSession(board: board, hearts: 3);
+      final session = GameSession(
+        board: board,
+        config: LevelConfig.forLevel(levelNumber: 1),
+        hearts: 3,
+      );
 
       expect(session.remainingCount, 2);
       expect(session.isWon, isFalse);
@@ -179,7 +184,11 @@ void main() {
       board.addArrow(a1);
       board.addArrow(a2);
 
-      final session = GameSession(board: board, hearts: 2);
+      final session = GameSession(
+        board: board,
+        config: LevelConfig.forLevel(levelNumber: 1),
+        hearts: 2,
+      );
 
       // Tap a1 (blocked by a2) -> lose 1 heart
       final tap1 = session.tapArrow('a1');
@@ -203,7 +212,10 @@ void main() {
       board.addArrow(a1);
       board.addArrow(a2);
 
-      final session = GameSession(board: board);
+      final session = GameSession(
+        board: board,
+        config: LevelConfig.forLevel(levelNumber: 1),
+      );
       final hintArrowId = session.requestHint();
 
       expect(hintArrowId, 'a2', reason: 'Hint should accurately pick the unblocked arrow a2');
