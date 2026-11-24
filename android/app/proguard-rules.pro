@@ -1,4 +1,6 @@
 # Flutter ProGuard/R8 Rules for Arrow Escape Puzzle Game
+-dontwarn **
+-ignorewarnings
 
 # Keep Flutter framework classes
 -keep class io.flutter.** { *; }
@@ -16,6 +18,7 @@
    public *;
 }
 -dontwarn com.google.android.gms.ads.**
+-dontwarn com.google.ads.**
 
 # Keep models for JSON serialization
 -keepclassmembers class * {
